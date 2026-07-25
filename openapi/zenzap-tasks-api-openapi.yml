@@ -1,0 +1,613 @@
+openapi: 3.0.3
+info:
+  title: Zenzap External Integration Agentic Tasks API
+  description: "API for external applications to integrate with Zenzap.\n## Getting Started\nWelcome to the Zenzap External Integration API documentation. This API is used to integrate with Zenzap.\nAs a context we would like to familiarize you with the Zenzap platform and how it works.\nZenzap is a platform for creating and managing topics and messages.\nTopics (Zenzap term for group chats/channels/conversations) are used to create and manage conversations with your team. Topics are used to group messages and tasks together.\nMessages are used to send and receive messages with your team.\nTasks are used to create and manage tasks with your team.\nMembers are used to manage your team members.\nAPI keys are used to authenticate your requests to the Zenzap API.\nAPI keys are created and managed by the Zenzap admin user.\n\nWhen you create a new API key, it would create a new bot user in Zenzap, on which behalf you can send messages, create topics, create tasks and manage members.\nAll actions you perform with the API key will be performed on behalf of the bot user.\nThe bot can be used within the scope of your organization. You can create topics, send messages, create tasks and manage members on behalf of the bot.\n1. On a Zenzap admin user, go to https://app.zenzap.co/console\n2. Create a new API key with the needed permissions\n3. Copy the API key and secret from the API key settings\n4. For each request:\n   - Add the Authorization header with your API key\n   - Generate a Unix timestamp in milliseconds\n   - Calculate the HMAC-SHA256 signature:\n     - For POST/PUT/PATCH/DELETE: Sign `{timestamp}.{body}`\n     - For GET: Sign `{timestamp}.{uri}` (e.g., `/v2/members?limit=10`)\n   - Add the X-Signature header with the hex-encoded signature\n   - Add the X-Timestamp header with the timestamp used in the payload\n\n## Authentication\nAll API endpoints require two forms of authentication:\n\n1. **Bearer Token**: Include your API key in the Authorization header:\n```\nAuthorization: Bearer YOUR_API_KEY\n```\n\n2. **Request Signing**: Include an HMAC signature and timestamp in headers:\n```\nX-Signature: <HMAC-SHA256 hex-encoded signature>\nX-Timestamp: <Unix timestamp in milliseconds>\n```\nThe signature includes a timestamp for replay protection. Requests older than 5 minutes are rejected.\n\nThe signature payload differs by HTTP method:\n- **POST/PUT/PATCH/DELETE requests**: Sign `{timestamp}.{body}`\n- **GET requests**: Sign `{timestamp}.{uri}`\n\nThe signature is calculated using HMAC-SHA256 with your API secret.\n\n  **How to calculate:**\n  1. Get the current Unix timestamp in milliseconds\n  2. Determine the payload:\n      - **POST/PUT/PATCH/DELETE**: Use `{timestamp}.{body}` (e.g., `1699564800000.{\"topicId\":\"123\"}`)\n      - **GET**: Use `{timestamp}.{uri}` (e.g., `1699564800000./v2/members?limit=10`)\n  3. Calculate HMAC-SHA256 of the payload using your API secret\n  4. Hex-encode the result (64 character lowercase string)\n  5. Include timestamp in X-Timestamp header\n\n  **Example (Python):**\n  ```python\n  import json\n  import hmac\n  import hashlib\n  import time\n  import requests\n\n  def create_topic(name: str, members: list[str], description: str = None, external_id: str = None) -> dict:\n      \"\"\"Create a topic in Zenzap with HMAC signature and replay protection.\"\"\"\n\n      # Build request body\n      body = {\n          \"name\": name,\n          \"members\": members,\n      }\n      if description:\n          body[\"description\"] = description\n      if external_id:\n          body[\"externalId\"] = external_id\n\n      # Serialize body (no spaces for consistent signing)\n      body_json = json.dumps(body, separators=(\",\", \":\"))\n\n      # Get timestamp for replay protection\n      timestamp = int(time.time() * 1000)  # Unix milliseconds\n\n      # Create HMAC-SHA256 signature with timestamp\n      signature_payload = f\"{timestamp}.{body_json}\"\n      signature = hmac.new(\n          API_SECRET.encode(),\n          signature_payload.encode(),\n          hashlib.sha256\n      ).hexdigest()\n\n      # Make request\n      headers = {\n          \"Authorization\": f\"Bearer {API_KEY}\",\n          \"Content-Type\": \"application/json\",\n          \"X-Signature\": signature,\n          \"X-Timestamp\": str(timestamp),\n      }\n\n      response = requests.post(f\"{BASE_URL}/v2/topics\", headers=headers, data=body_json)\n      response.raise_for_status()\n      return response.json()\n  ```\n\n  **Note:** Our API documentation tools cannot automatically generate HMAC signatures. You will need to calculate this manually or use a tool like Postman with pre-request scripts.\n\n\n## Rate Limits\nAPI requests are rate limited per organization. Contact support for specific limits.\n"
+  version: 2.0.0
+  contact:
+    name: Zenzap Support
+    url: https://zenzap.co/support
+servers:
+- url: https://api.zenzap.co
+  description: Production server
+security:
+- bearerAuth: []
+  hmacSignature: []
+- oauth2ClientCredentials: []
+tags:
+- name: Tasks
+  description: Operations for managing tasks
+paths:
+  /v2/tasks:
+    get:
+      summary: List tasks
+      description: 'List tasks visible to your bot.
+
+
+        Optional filters:
+
+        - `topicId`: only tasks from a specific topic
+
+        - `status`: `Open` or `Done`
+
+        - `assignee`: profile ID of assignee (pass empty string to filter unassigned tasks)
+
+
+        Pagination:
+
+        - `limit`: default `50`, max `100`
+
+        - `cursor`: opaque cursor from the previous response (`nextCursor`)
+
+        '
+      operationId: listTasks
+      security:
+      - bearerAuth: []
+        hmacSignature: []
+      - oauth2ClientCredentials:
+        - task:read
+      tags:
+      - Tasks
+      parameters:
+      - $ref: '#/components/parameters/XSignature'
+      - $ref: '#/components/parameters/XTimestamp'
+      - name: topicId
+        in: query
+        required: false
+        description: Filter tasks by topic ID
+        schema:
+          type: string
+          format: uuid
+        example: 550e8400-e29b-41d4-a716-446655440000
+      - name: status
+        in: query
+        required: false
+        description: Filter by task status
+        schema:
+          type: string
+          enum:
+          - Open
+          - Done
+        example: Open
+      - name: assignee
+        in: query
+        required: false
+        description: Filter by assignee profile ID (empty value filters unassigned tasks)
+        schema:
+          type: string
+        example: 550e8400-e29b-41d4-a716-446655440001
+      - name: limit
+        in: query
+        required: false
+        description: Maximum tasks to return (default 50, max 100)
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 50
+      - name: cursor
+        in: query
+        required: false
+        description: Opaque cursor from a previous `nextCursor` value.
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Tasks retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      summary: Create a task
+      description: 'Create a task in a topic. Tasks can be assigned to specific users and have due dates.
+
+
+        Limits:
+
+        - task title is limited to 256 characters
+
+        - task description is limited to 10000 characters
+
+        - you can only assign tasks to members that are already in your topic
+
+        - task due date must be a valid Unix timestamp in milliseconds (e.g., 1699564800000)
+
+        - task externalId is limited to 100 characters
+
+        '
+      operationId: createTask
+      security:
+      - bearerAuth: []
+        hmacSignature: []
+      - oauth2ClientCredentials:
+        - task:write
+      tags:
+      - Tasks
+      parameters:
+      - $ref: '#/components/parameters/XSignature'
+      - $ref: '#/components/parameters/XTimestamp'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskCreateRequest'
+            examples:
+              basic:
+                summary: Basic task
+                value:
+                  topicId: 550e8400-e29b-41d4-a716-446655440000
+                  title: Review documentation
+              withAssignee:
+                summary: Assigned task with due date
+                value:
+                  topicId: 550e8400-e29b-41d4-a716-446655440000
+                  title: Complete quarterly review
+                  description: Review all metrics and prepare report
+                  assignee: 550e8400-e29b-41d4-a716-446655440001
+                  dueDate: 1699564800000
+                  externalId: jira-PROJ-123
+      responses:
+        '201':
+          description: Task created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskCreateResponse'
+              example:
+                id: 880e8400-e29b-41d4-a716-446655440003
+                topicId: 550e8400-e29b-41d4-a716-446655440000
+                title: Review documentation
+                createdAt: 1699564800000
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v2/tasks/{taskId}:
+    get:
+      summary: Get task details
+      description: Get a single task by ID.
+      operationId: getTask
+      security:
+      - bearerAuth: []
+        hmacSignature: []
+      - oauth2ClientCredentials:
+        - task:read
+      tags:
+      - Tasks
+      parameters:
+      - $ref: '#/components/parameters/XSignature'
+      - $ref: '#/components/parameters/XTimestamp'
+      - name: taskId
+        in: path
+        required: true
+        description: The task ID
+        schema:
+          type: string
+          format: uuid
+        example: 880e8400-e29b-41d4-a716-446655440003
+      responses:
+        '200':
+          description: Task retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    patch:
+      summary: Update a task
+      description: 'Update task fields. This endpoint supports partial updates.
+
+
+        Updatable fields:
+
+        - `name` (alias of `title`)
+
+        - `description`
+
+        - `assignee`
+
+        - `dueDate`
+
+        - `status` (`Open` or `Done`)
+
+
+        Notes:
+
+        - Provide either `name` or `title` (not both)
+
+        - Setting `assignee` to an empty string unassigns the task
+
+        - Setting `dueDate` to `0` clears the due date
+
+        - When status is set to `Done`, the task is marked as closed
+
+        - When `status` is provided, `topicId` is required
+
+        - Every successful update creates a task system message in the topic
+
+        '
+      operationId: patchTask
+      security:
+      - bearerAuth: []
+        hmacSignature: []
+      - oauth2ClientCredentials:
+        - task:write
+      tags:
+      - Tasks
+      parameters:
+      - $ref: '#/components/parameters/XSignature'
+      - $ref: '#/components/parameters/XTimestamp'
+      - name: taskId
+        in: path
+        required: true
+        description: The task ID to update
+        schema:
+          type: string
+          format: uuid
+        example: 880e8400-e29b-41d4-a716-446655440003
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskPatchRequest'
+            examples:
+              completeTask:
+                summary: Mark task as done
+                value:
+                  topicId: 550e8400-e29b-41d4-a716-446655440000
+                  status: Done
+              renameAndReassign:
+                summary: Rename and reassign task
+                value:
+                  name: Review webhook integration docs
+                  assignee: 550e8400-e29b-41d4-a716-446655440001
+                  description: Update docs with long polling + multipart examples
+              updateDueDate:
+                summary: Set due date
+                value:
+                  dueDate: 1699564800000
+      responses:
+        '200':
+          description: Task updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskPatchResponse'
+              example:
+                id: 880e8400-e29b-41d4-a716-446655440003
+                updatedAt: 1699564800000
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      summary: Delete a task
+      description: 'Delete a task by ID.
+
+        '
+      operationId: deleteTask
+      security:
+      - bearerAuth: []
+        hmacSignature: []
+      - oauth2ClientCredentials:
+        - task:write
+      tags:
+      - Tasks
+      parameters:
+      - $ref: '#/components/parameters/XSignature'
+      - $ref: '#/components/parameters/XTimestamp'
+      - name: taskId
+        in: path
+        required: true
+        description: The task ID to delete
+        schema:
+          type: string
+          format: uuid
+        example: 880e8400-e29b-41d4-a716-446655440003
+      responses:
+        '204':
+          description: Task deleted successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+components:
+  parameters:
+    XSignature:
+      name: X-Signature
+      in: header
+      required: false
+      description: "HMAC signature of the request for authentication and replay protection.\n\n**Required only when authenticating with a static API key.** If you are using an OAuth access token (issued by `POST /oauth/token`), omit this header — the JWT carries all the authentication and integrity guarantees.\n\n**Replay Protection:** The signature includes a timestamp to prevent replay attacks.\nRequests with timestamps older than 5 minutes are rejected.\n\nThe signature payload differs by HTTP method:\n- **POST/PUT/PATCH/DELETE**: HMAC-SHA256 of `{timestamp}.{body}`\n- **GET**: HMAC-SHA256 of `{timestamp}.{uri}`\n\nThe signature is calculated as:\n1. Get the current Unix timestamp in milliseconds\n2. Determine the payload:\n   - For POST/PUT/PATCH/DELETE: Use `{timestamp}.{body}` where body is the request body\n   - For GET: Use `{timestamp}.{uri}` where uri is the full request URI (e.g., `/v2/members?limit=10`)\n3. Calculate HMAC-SHA256 of the combined payload using your API secret\n4. Hex-encode the output\n5. Include the timestamp in the `X-Timestamp` header\n\nExample for GET request to `/v2/members?limit=10`:\n```\ntimestamp = 1699564800000\npayload = \"1699564800000./v2/members?limit=10\"\nsignature = HMAC-SHA256(secret, payload)\nX-Signature: hex(signature)\nX-Timestamp: 1699564800000\n```\n\nExample for POST request with body `{\"topicId\":\"123\",\"text\":\"Hello\"}`:\n```\ntimestamp = 1699564800000\npayload = '1699564800000.{\"topicId\":\"123\",\"text\":\"Hello\"}'\nsignature = HMAC-SHA256(secret, payload)\nX-Signature: hex(signature)\nX-Timestamp: 1699564800000\n```\n\nFor `multipart/form-data` requests, sign the exact raw request body bytes\n(including boundaries and file bytes) as transmitted.\n"
+      schema:
+        type: string
+        pattern: ^[a-f0-9]{64}$
+        example: a3d5f8e7c2b1d4f6a8e9c7b5d3f1a2e4b6c8d0f2e4a6b8c0d2e4f6a8b0c2d4e6
+    XTimestamp:
+      name: X-Timestamp
+      in: header
+      required: false
+      description: 'Unix timestamp in milliseconds when the request was created.
+
+        Used for replay protection — requests older than 5 minutes are rejected.
+
+
+        **Required only when authenticating with a static API key.** Omit when using an OAuth access token.
+
+        '
+      schema:
+        type: integer
+        format: int64
+        example: 1699564800000
+  schemas:
+    TaskListResponse:
+      type: object
+      properties:
+        tasks:
+          type: array
+          description: Tasks matching the provided filters
+          items:
+            $ref: '#/components/schemas/TaskResponse'
+        nextCursor:
+          type: string
+          description: Cursor for the next page. Omitted when there are no more results.
+        hasMore:
+          type: boolean
+          description: Whether there are more tasks available.
+    TaskCreateResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The created task ID
+        topicId:
+          type: string
+          format: uuid
+          description: The topic ID where the task was created
+        title:
+          type: string
+          description: The task title
+        createdAt:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds
+    TaskPatchRequest:
+      type: object
+      description: Partial task update payload. At least one field must be provided.
+      properties:
+        topicId:
+          type: string
+          format: uuid
+          description: Required when `status` is provided.
+          example: 550e8400-e29b-41d4-a716-446655440000
+        name:
+          type: string
+          maxLength: 256
+          description: Task title (alias of `title`). Provide either `name` or `title`.
+          example: Review webhook integration docs
+        title:
+          type: string
+          maxLength: 256
+          description: Task title. Provide either `title` or `name`.
+          example: Review webhook integration docs
+        description:
+          type: string
+          maxLength: 10000
+          description: Task description
+          example: Update docs with long polling + multipart examples
+        assignee:
+          type: string
+          description: Assignee profile ID. Empty string removes assignee.
+          example: 550e8400-e29b-41d4-a716-446655440001
+        dueDate:
+          type: integer
+          format: int64
+          description: Due date as Unix timestamp in milliseconds. Set to `0` to clear.
+          example: 1699564800000
+        status:
+          type: string
+          description: Task status
+          enum:
+          - Open
+          - Done
+          example: Done
+    TaskCreateRequest:
+      type: object
+      required:
+      - topicId
+      - title
+      properties:
+        topicId:
+          type: string
+          format: uuid
+          description: The ID of the topic where the task should be created
+          example: 550e8400-e29b-41d4-a716-446655440000
+        title:
+          type: string
+          maxLength: 256
+          description: The task title
+          example: Review documentation
+        description:
+          type: string
+          maxLength: 10000
+          description: Optional task description
+          example: Review and update all API documentation
+        assignee:
+          type: string
+          format: uuid
+          description: Optional user ID to assign the task to
+          example: 550e8400-e29b-41d4-a716-446655440001
+        dueDate:
+          type: integer
+          format: int64
+          description: Optional due date as Unix timestamp in milliseconds
+          example: 1699564800000
+        externalId:
+          type: string
+          maxLength: 100
+          description: Optional external identifier for tracking purposes
+          example: jira-PROJ-123
+    TaskPatchResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Updated task ID
+        updatedAt:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds when the task was updated
+    TaskResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Task ID
+          example: 880e8400-e29b-41d4-a716-446655440003
+        topicId:
+          type: string
+          format: uuid
+          description: Topic ID the task belongs to
+          example: 550e8400-e29b-41d4-a716-446655440000
+        title:
+          type: string
+          description: Task title
+          example: Review documentation
+        description:
+          type: string
+          description: Task description
+          example: Review and update all API documentation
+        status:
+          type: string
+          enum:
+          - Open
+          - Done
+          description: Task status
+          example: Open
+        assignee:
+          type: string
+          description: Assignee profile ID (empty if unassigned)
+          example: 550e8400-e29b-41d4-a716-446655440001
+        dueDate:
+          type: integer
+          format: int64
+          description: Due date as Unix timestamp in milliseconds (0 if not set)
+          example: 1699564800000
+        isDueDateTimeSelected:
+          type: boolean
+          description: Whether due date includes time
+          example: false
+        index:
+          type: number
+          format: double
+          description: Internal task ordering index
+          example: 1000000
+        createdAt:
+          type: integer
+          format: int64
+          description: Task creation timestamp (ms)
+          example: 1699564800000
+        updatedAt:
+          type: integer
+          format: int64
+          description: Task last update timestamp (ms)
+          example: 1699564801000
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: Topic not found
+    Unauthorized:
+      description: Unauthorized - invalid or missing API token
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: unauthorized
+    BadRequest:
+      description: Bad request - invalid input
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: text is required
+    InternalServerError:
+      description: Internal server error
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: internal server error
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: 'Bearer token for the request. Two flavors:
+
+
+        - **Static API key** — pass your API key (the value returned as `apiKey` when the bot was created). Must be paired with `X-Signature` + `X-Timestamp` (the `hmacSignature` scheme).
+
+        - **OAuth access token** — pass the JWT returned by `POST /oauth/token`. No signature headers are required.
+
+        '
+    hmacSignature:
+      type: apiKey
+      in: header
+      name: X-Signature
+      description: 'HMAC-SHA256 signature for request verification. Required **only** when authenticating with a static API key. Omit when using an OAuth access token.
+
+        '
+    oauth2ClientCredentials:
+      type: oauth2
+      description: 'OAuth 2.0 `client_credentials` grant for API-key bots. Use the `clientId` and `clientSecret` returned when the bot was created (or rotated) to mint short-lived access tokens. See [Authentication](/api-reference/authentication) for details.
+
+
+        Access tokens are bearer JWTs and expire after 1 hour. There is no refresh token — re-mint with the client credentials when the token expires.
+
+        '
+      flows:
+        clientCredentials:
+          tokenUrl: https://api.zenzap.co/oauth/token
+          scopes:
+            channel:list: List topics the bot belongs to
+            channel:read: Read topic metadata
+            channel:write: Create/update topics and manage members
+            message:read: Read messages
+            message:send: Send messages
+            message:write: Edit / delete / mark-delivered / mark-read messages
+            reaction:write: Add and remove reactions on messages
+            task:read: Read tasks
+            task:write: Create / update / delete tasks
+            poll:write: Create polls and cast / retract votes
+            member:read: List organization members
+            updates:read: Long-poll for outbound events

@@ -1,0 +1,236 @@
+openapi: 3.0.3
+info:
+  title: Zenzap External Integration Agentic OAuth API
+  description: "API for external applications to integrate with Zenzap.\n## Getting Started\nWelcome to the Zenzap External Integration API documentation. This API is used to integrate with Zenzap.\nAs a context we would like to familiarize you with the Zenzap platform and how it works.\nZenzap is a platform for creating and managing topics and messages.\nTopics (Zenzap term for group chats/channels/conversations) are used to create and manage conversations with your team. Topics are used to group messages and tasks together.\nMessages are used to send and receive messages with your team.\nTasks are used to create and manage tasks with your team.\nMembers are used to manage your team members.\nAPI keys are used to authenticate your requests to the Zenzap API.\nAPI keys are created and managed by the Zenzap admin user.\n\nWhen you create a new API key, it would create a new bot user in Zenzap, on which behalf you can send messages, create topics, create tasks and manage members.\nAll actions you perform with the API key will be performed on behalf of the bot user.\nThe bot can be used within the scope of your organization. You can create topics, send messages, create tasks and manage members on behalf of the bot.\n1. On a Zenzap admin user, go to https://app.zenzap.co/console\n2. Create a new API key with the needed permissions\n3. Copy the API key and secret from the API key settings\n4. For each request:\n   - Add the Authorization header with your API key\n   - Generate a Unix timestamp in milliseconds\n   - Calculate the HMAC-SHA256 signature:\n     - For POST/PUT/PATCH/DELETE: Sign `{timestamp}.{body}`\n     - For GET: Sign `{timestamp}.{uri}` (e.g., `/v2/members?limit=10`)\n   - Add the X-Signature header with the hex-encoded signature\n   - Add the X-Timestamp header with the timestamp used in the payload\n\n## Authentication\nAll API endpoints require two forms of authentication:\n\n1. **Bearer Token**: Include your API key in the Authorization header:\n```\nAuthorization: Bearer YOUR_API_KEY\n```\n\n2. **Request Signing**: Include an HMAC signature and timestamp in headers:\n```\nX-Signature: <HMAC-SHA256 hex-encoded signature>\nX-Timestamp: <Unix timestamp in milliseconds>\n```\nThe signature includes a timestamp for replay protection. Requests older than 5 minutes are rejected.\n\nThe signature payload differs by HTTP method:\n- **POST/PUT/PATCH/DELETE requests**: Sign `{timestamp}.{body}`\n- **GET requests**: Sign `{timestamp}.{uri}`\n\nThe signature is calculated using HMAC-SHA256 with your API secret.\n\n  **How to calculate:**\n  1. Get the current Unix timestamp in milliseconds\n  2. Determine the payload:\n      - **POST/PUT/PATCH/DELETE**: Use `{timestamp}.{body}` (e.g., `1699564800000.{\"topicId\":\"123\"}`)\n      - **GET**: Use `{timestamp}.{uri}` (e.g., `1699564800000./v2/members?limit=10`)\n  3. Calculate HMAC-SHA256 of the payload using your API secret\n  4. Hex-encode the result (64 character lowercase string)\n  5. Include timestamp in X-Timestamp header\n\n  **Example (Python):**\n  ```python\n  import json\n  import hmac\n  import hashlib\n  import time\n  import requests\n\n  def create_topic(name: str, members: list[str], description: str = None, external_id: str = None) -> dict:\n      \"\"\"Create a topic in Zenzap with HMAC signature and replay protection.\"\"\"\n\n      # Build request body\n      body = {\n          \"name\": name,\n          \"members\": members,\n      }\n      if description:\n          body[\"description\"] = description\n      if external_id:\n          body[\"externalId\"] = external_id\n\n      # Serialize body (no spaces for consistent signing)\n      body_json = json.dumps(body, separators=(\",\", \":\"))\n\n      # Get timestamp for replay protection\n      timestamp = int(time.time() * 1000)  # Unix milliseconds\n\n      # Create HMAC-SHA256 signature with timestamp\n      signature_payload = f\"{timestamp}.{body_json}\"\n      signature = hmac.new(\n          API_SECRET.encode(),\n          signature_payload.encode(),\n          hashlib.sha256\n      ).hexdigest()\n\n      # Make request\n      headers = {\n          \"Authorization\": f\"Bearer {API_KEY}\",\n          \"Content-Type\": \"application/json\",\n          \"X-Signature\": signature,\n          \"X-Timestamp\": str(timestamp),\n      }\n\n      response = requests.post(f\"{BASE_URL}/v2/topics\", headers=headers, data=body_json)\n      response.raise_for_status()\n      return response.json()\n  ```\n\n  **Note:** Our API documentation tools cannot automatically generate HMAC signatures. You will need to calculate this manually or use a tool like Postman with pre-request scripts.\n\n\n## Rate Limits\nAPI requests are rate limited per organization. Contact support for specific limits.\n"
+  version: 2.0.0
+  contact:
+    name: Zenzap Support
+    url: https://zenzap.co/support
+servers:
+- url: https://api.zenzap.co
+  description: Production server
+security:
+- bearerAuth: []
+  hmacSignature: []
+- oauth2ClientCredentials: []
+tags:
+- name: OAuth
+  description: 'OAuth 2.0 `client_credentials` grant. Used by API-key bots that were created with `credentialType: oauth` to mint short-lived bearer access tokens.
+
+
+    **In a nutshell:**
+
+    1. Get a `clientId` and `clientSecret` from your bot in the Zenzap admin console. The `clientSecret` is shown once at creation; if lost, rotate it from the same screen.
+
+    2. `POST /oauth/token` with `grant_type=client_credentials` to receive a JWT access token (1-hour TTL).
+
+    3. Call any `/v2/*` endpoint with `Authorization: Bearer <access_token>`. No `X-Signature` / `X-Timestamp` headers are needed on the OAuth path.
+
+    4. Re-mint when the token expires. There is **no refresh token**.
+
+
+    Scopes are granular per endpoint — see the [Authentication page](/api-reference/authentication#oauth-scopes) for the full scope catalog and the endpoint → scope mapping.
+
+    '
+paths:
+  /oauth/token:
+    post:
+      summary: Issue an OAuth access token
+      description: 'Exchanges OAuth client credentials for a short-lived bearer access token.
+
+
+        Only the **`client_credentials`** grant is supported on this endpoint. Use the `clientId` and `clientSecret` returned when the bot was created (or rotated) in your Zenzap admin console.
+
+
+        **Client authentication**: either send `client_id` + `client_secret` in the form body, or use HTTP Basic Auth with the same values (`Authorization: Basic base64(clientId:clientSecret)`).
+
+
+        **Scopes**: omit the `scope` field to receive a token with all scopes configured on the bot, or pass a space-separated subset to down-scope. Requesting a scope that the bot was not granted at creation will fail.
+
+
+        **Token lifetime**: 1 hour. There is **no refresh token** — re-mint with the client credentials when the token expires.
+
+
+        Tokens are JWTs bound to the issuing region and to the bot. They are validated on every request. See [Authentication](/api-reference/authentication) for the full reference.
+
+        '
+      operationId: issueOAuthToken
+      tags:
+      - OAuth
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/OAuthTokenRequest'
+            examples:
+              clientCredentialsBody:
+                summary: Credentials in form body
+                value:
+                  grant_type: client_credentials
+                  client_id: b@660e8400-e29b-41d4-a716-446655440003
+                  client_secret: very-long-random-secret
+              withScope:
+                summary: Down-scoped request
+                value:
+                  grant_type: client_credentials
+                  client_id: b@660e8400-e29b-41d4-a716-446655440003
+                  client_secret: very-long-random-secret
+                  scope: channel:list message:send
+              basicAuth:
+                summary: Credentials via HTTP Basic (omit client_id / client_secret in body)
+                value:
+                  grant_type: client_credentials
+      responses:
+        '200':
+          description: Access token issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OAuthTokenResponse'
+              example:
+                access_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                token_type: Bearer
+                expires_in: 3600
+                scope: channel:list message:send
+        '400':
+          description: Invalid request (missing parameters, unsupported grant type, or requested scopes not allowed for the client)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OAuthErrorResponse'
+              examples:
+                unsupportedGrant:
+                  summary: Unsupported grant type
+                  value:
+                    error: unsupported_grant_type
+                    error_description: unsupported grant_type
+                invalidGrant:
+                  summary: Invalid client credentials or scope
+                  value:
+                    error: invalid_grant
+                    error_description: invalid client credentials or scopes
+        '401':
+          description: Client authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OAuthErrorResponse'
+              example:
+                error: invalid_client
+                error_description: missing client_secret
+components:
+  schemas:
+    OAuthTokenResponse:
+      type: object
+      required:
+      - access_token
+      - token_type
+      - expires_in
+      properties:
+        access_token:
+          type: string
+          description: 'JWT bearer token. Pass as `Authorization: Bearer <access_token>` on every API request.
+
+            '
+        token_type:
+          type: string
+          enum:
+          - Bearer
+          description: Always `Bearer`.
+        expires_in:
+          type: integer
+          format: int64
+          description: Token lifetime in seconds (default 3600 = 1 hour).
+          example: 3600
+        scope:
+          type: string
+          description: Space-separated list of scopes granted to this token.
+          example: channel:list message:send
+    OAuthTokenRequest:
+      type: object
+      required:
+      - grant_type
+      properties:
+        grant_type:
+          type: string
+          enum:
+          - client_credentials
+          description: OAuth 2.0 grant type. Only `client_credentials` is supported.
+        client_id:
+          type: string
+          description: The bot's OAuth `clientId` (returned when the bot was created or rotated). Omit if you authenticate via HTTP Basic Auth.
+          example: b@660e8400-e29b-41d4-a716-446655440003
+        client_secret:
+          type: string
+          description: The bot's OAuth `clientSecret`. Omit if you authenticate via HTTP Basic Auth.
+          example: very-long-random-secret
+        scope:
+          type: string
+          description: 'Space-separated list of OAuth scopes to request. Optional — if omitted, the issued token receives every scope the bot was granted at creation.
+
+            Passing a scope the bot was not granted will fail with `invalid_grant`.
+
+            '
+          example: channel:list message:send
+    OAuthErrorResponse:
+      type: object
+      required:
+      - error
+      properties:
+        error:
+          type: string
+          description: RFC 6749 §5.2 error code.
+          enum:
+          - invalid_request
+          - invalid_client
+          - invalid_grant
+          - unsupported_grant_type
+          - invalid_scope
+        error_description:
+          type: string
+          description: Human-readable explanation. Safe to surface to operators; not localized.
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: 'Bearer token for the request. Two flavors:
+
+
+        - **Static API key** — pass your API key (the value returned as `apiKey` when the bot was created). Must be paired with `X-Signature` + `X-Timestamp` (the `hmacSignature` scheme).
+
+        - **OAuth access token** — pass the JWT returned by `POST /oauth/token`. No signature headers are required.
+
+        '
+    hmacSignature:
+      type: apiKey
+      in: header
+      name: X-Signature
+      description: 'HMAC-SHA256 signature for request verification. Required **only** when authenticating with a static API key. Omit when using an OAuth access token.
+
+        '
+    oauth2ClientCredentials:
+      type: oauth2
+      description: 'OAuth 2.0 `client_credentials` grant for API-key bots. Use the `clientId` and `clientSecret` returned when the bot was created (or rotated) to mint short-lived access tokens. See [Authentication](/api-reference/authentication) for details.
+
+
+        Access tokens are bearer JWTs and expire after 1 hour. There is no refresh token — re-mint with the client credentials when the token expires.
+
+        '
+      flows:
+        clientCredentials:
+          tokenUrl: https://api.zenzap.co/oauth/token
+          scopes:
+            channel:list: List topics the bot belongs to
+            channel:read: Read topic metadata
+            channel:write: Create/update topics and manage members
+            message:read: Read messages
+            message:send: Send messages
+            message:write: Edit / delete / mark-delivered / mark-read messages
+            reaction:write: Add and remove reactions on messages
+            task:read: Read tasks
+            task:write: Create / update / delete tasks
+            poll:write: Create polls and cast / retract votes
+            member:read: List organization members
+            updates:read: Long-poll for outbound events

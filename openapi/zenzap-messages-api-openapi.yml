@@ -1,0 +1,632 @@
+openapi: 3.0.3
+info:
+  title: Zenzap External Integration Agentic Messages API
+  description: "API for external applications to integrate with Zenzap.\n## Getting Started\nWelcome to the Zenzap External Integration API documentation. This API is used to integrate with Zenzap.\nAs a context we would like to familiarize you with the Zenzap platform and how it works.\nZenzap is a platform for creating and managing topics and messages.\nTopics (Zenzap term for group chats/channels/conversations) are used to create and manage conversations with your team. Topics are used to group messages and tasks together.\nMessages are used to send and receive messages with your team.\nTasks are used to create and manage tasks with your team.\nMembers are used to manage your team members.\nAPI keys are used to authenticate your requests to the Zenzap API.\nAPI keys are created and managed by the Zenzap admin user.\n\nWhen you create a new API key, it would create a new bot user in Zenzap, on which behalf you can send messages, create topics, create tasks and manage members.\nAll actions you perform with the API key will be performed on behalf of the bot user.\nThe bot can be used within the scope of your organization. You can create topics, send messages, create tasks and manage members on behalf of the bot.\n1. On a Zenzap admin user, go to https://app.zenzap.co/console\n2. Create a new API key with the needed permissions\n3. Copy the API key and secret from the API key settings\n4. For each request:\n   - Add the Authorization header with your API key\n   - Generate a Unix timestamp in milliseconds\n   - Calculate the HMAC-SHA256 signature:\n     - For POST/PUT/PATCH/DELETE: Sign `{timestamp}.{body}`\n     - For GET: Sign `{timestamp}.{uri}` (e.g., `/v2/members?limit=10`)\n   - Add the X-Signature header with the hex-encoded signature\n   - Add the X-Timestamp header with the timestamp used in the payload\n\n## Authentication\nAll API endpoints require two forms of authentication:\n\n1. **Bearer Token**: Include your API key in the Authorization header:\n```\nAuthorization: Bearer YOUR_API_KEY\n```\n\n2. **Request Signing**: Include an HMAC signature and timestamp in headers:\n```\nX-Signature: <HMAC-SHA256 hex-encoded signature>\nX-Timestamp: <Unix timestamp in milliseconds>\n```\nThe signature includes a timestamp for replay protection. Requests older than 5 minutes are rejected.\n\nThe signature payload differs by HTTP method:\n- **POST/PUT/PATCH/DELETE requests**: Sign `{timestamp}.{body}`\n- **GET requests**: Sign `{timestamp}.{uri}`\n\nThe signature is calculated using HMAC-SHA256 with your API secret.\n\n  **How to calculate:**\n  1. Get the current Unix timestamp in milliseconds\n  2. Determine the payload:\n      - **POST/PUT/PATCH/DELETE**: Use `{timestamp}.{body}` (e.g., `1699564800000.{\"topicId\":\"123\"}`)\n      - **GET**: Use `{timestamp}.{uri}` (e.g., `1699564800000./v2/members?limit=10`)\n  3. Calculate HMAC-SHA256 of the payload using your API secret\n  4. Hex-encode the result (64 character lowercase string)\n  5. Include timestamp in X-Timestamp header\n\n  **Example (Python):**\n  ```python\n  import json\n  import hmac\n  import hashlib\n  import time\n  import requests\n\n  def create_topic(name: str, members: list[str], description: str = None, external_id: str = None) -> dict:\n      \"\"\"Create a topic in Zenzap with HMAC signature and replay protection.\"\"\"\n\n      # Build request body\n      body = {\n          \"name\": name,\n          \"members\": members,\n      }\n      if description:\n          body[\"description\"] = description\n      if external_id:\n          body[\"externalId\"] = external_id\n\n      # Serialize body (no spaces for consistent signing)\n      body_json = json.dumps(body, separators=(\",\", \":\"))\n\n      # Get timestamp for replay protection\n      timestamp = int(time.time() * 1000)  # Unix milliseconds\n\n      # Create HMAC-SHA256 signature with timestamp\n      signature_payload = f\"{timestamp}.{body_json}\"\n      signature = hmac.new(\n          API_SECRET.encode(),\n          signature_payload.encode(),\n          hashlib.sha256\n      ).hexdigest()\n\n      # Make request\n      headers = {\n          \"Authorization\": f\"Bearer {API_KEY}\",\n          \"Content-Type\": \"application/json\",\n          \"X-Signature\": signature,\n          \"X-Timestamp\": str(timestamp),\n      }\n\n      response = requests.post(f\"{BASE_URL}/v2/topics\", headers=headers, data=body_json)\n      response.raise_for_status()\n      return response.json()\n  ```\n\n  **Note:** Our API documentation tools cannot automatically generate HMAC signatures. You will need to calculate this manually or use a tool like Postman with pre-request scripts.\n\n\n## Rate Limits\nAPI requests are rate limited per organization. Contact support for specific limits.\n"
+  version: 2.0.0
+  contact:
+    name: Zenzap Support
+    url: https://zenzap.co/support
+servers:
+- url: https://api.zenzap.co
+  description: Production server
+security:
+- bearerAuth: []
+  hmacSignature: []
+- oauth2ClientCredentials: []
+tags:
+- name: Messages
+  description: Operations for sending messages
+paths:
+  /v2/messages:
+    post:
+      summary: Send a message
+      description: 'Send a message to a topic. Your API key bot will appear as the sender.
+
+
+        Supported request modes:
+
+        - `application/json` for text messages
+
+        - `multipart/form-data` for file/image messages
+
+
+        Mentions:
+
+        - Mention members directly in `text` using `<@profileId>`
+
+        - Example: `Hello <@550e8400-e29b-41d4-a716-446655440001>`
+
+        - Mentioned profiles must be members of the topic
+
+
+        Limits:
+
+        - message length is limited to 10000 characters
+
+        '
+      operationId: createMessage
+      security:
+      - bearerAuth: []
+        hmacSignature: []
+      - oauth2ClientCredentials:
+        - message:send
+      tags:
+      - Messages
+      parameters:
+      - $ref: '#/components/parameters/XSignature'
+      - $ref: '#/components/parameters/XTimestamp'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MessageCreateRequest'
+            examples:
+              basic:
+                summary: Basic message
+                value:
+                  topicId: 550e8400-e29b-41d4-a716-446655440000
+                  text: Hello from my integration!
+              withExternalId:
+                summary: Message with external ID
+                value:
+                  topicId: 550e8400-e29b-41d4-a716-446655440000
+                  text: 'Status update: Build completed successfully'
+                  externalId: build-12345
+              withMention:
+                summary: Message with mention
+                value:
+                  topicId: 550e8400-e29b-41d4-a716-446655440000
+                  text: Hi <@550e8400-e29b-41d4-a716-446655440001>, can you review this?
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MessageFileUploadRequest'
+            encoding:
+              metaPart:
+                contentType: application/json
+            examples:
+              fileUpload:
+                summary: File upload
+                value:
+                  metaPart:
+                    channelID: 550e8400-e29b-41d4-a716-446655440000
+                    caption: Quarterly report
+                    externalId: report-2026-q1
+                    compressImage: false
+                  filePart: (binary)
+      responses:
+        '200':
+          description: File message accepted (multipart upload)
+        '201':
+          description: Text message created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageCreateResponse'
+              example:
+                id: 660e8400-e29b-41d4-a716-446655440001
+                topicId: 550e8400-e29b-41d4-a716-446655440000
+                createdAt: 1699564800000
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v2/messages/{messageId}:
+    delete:
+      summary: Delete a message
+      description: 'Delete a message by ID. Only the bot that sent the message can delete it.
+
+        '
+      operationId: deleteMessage
+      security:
+      - bearerAuth: []
+        hmacSignature: []
+      - oauth2ClientCredentials:
+        - message:write
+      tags:
+      - Messages
+      parameters:
+      - $ref: '#/components/parameters/XSignature'
+      - $ref: '#/components/parameters/XTimestamp'
+      - name: messageId
+        in: path
+        required: true
+        description: The message ID to delete
+        schema:
+          type: string
+          format: uuid
+        example: 660e8400-e29b-41d4-a716-446655440001
+      responses:
+        '204':
+          description: Message deleted successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    patch:
+      summary: Edit a message
+      description: 'Edit the text of a message. Only the bot that sent the message can edit it, and the bot must still be a member of the channel.
+
+
+        Notes:
+
+        - `text` is required and cannot be empty
+
+        - Message length is limited to 10000 characters
+
+        - Edited messages will have an `Edited` property marker applied
+
+        '
+      operationId: patchMessage
+      security:
+      - bearerAuth: []
+        hmacSignature: []
+      - oauth2ClientCredentials:
+        - message:write
+      tags:
+      - Messages
+      parameters:
+      - $ref: '#/components/parameters/XSignature'
+      - $ref: '#/components/parameters/XTimestamp'
+      - name: messageId
+        in: path
+        required: true
+        description: The message ID to edit
+        schema:
+          type: string
+          format: uuid
+        example: 660e8400-e29b-41d4-a716-446655440001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MessagePatchRequest'
+            example:
+              text: Updated message content
+      responses:
+        '200':
+          description: Message updated successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v2/messages/{messageId}/reactions:
+    post:
+      summary: Add a reaction to a message
+      description: 'Add an emoji reaction to a message. The bot must be a member of the channel.
+
+
+        This endpoint is idempotent per `{messageId, bot, reaction}`:
+
+        - Returns `201` when a new reaction is created
+
+        - Returns `200` when the same reaction already exists for this bot
+
+        '
+      operationId: addMessageReaction
+      security:
+      - bearerAuth: []
+        hmacSignature: []
+      - oauth2ClientCredentials:
+        - reaction:write
+      tags:
+      - Messages
+      parameters:
+      - $ref: '#/components/parameters/XSignature'
+      - $ref: '#/components/parameters/XTimestamp'
+      - name: messageId
+        in: path
+        required: true
+        description: The message ID to react to
+        schema:
+          type: string
+          format: uuid
+        example: 660e8400-e29b-41d4-a716-446655440001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MessageReactionCreateRequest'
+            example:
+              reaction: 👍
+      responses:
+        '200':
+          description: Reaction already existed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageReactionCreateResponse'
+        '201':
+          description: Reaction created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageReactionCreateResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v2/messages/{messageId}/reactions/{reactionId}:
+    delete:
+      summary: Remove a reaction from a message
+      description: 'Remove a reaction by ID. Only the bot that added the reaction can remove it, and the bot must still be a member of the channel.
+
+
+        The `messageId` in the path must match the message the reaction belongs to.
+
+        '
+      operationId: deleteMessageReaction
+      security:
+      - bearerAuth: []
+        hmacSignature: []
+      - oauth2ClientCredentials:
+        - reaction:write
+      tags:
+      - Messages
+      parameters:
+      - $ref: '#/components/parameters/XSignature'
+      - $ref: '#/components/parameters/XTimestamp'
+      - name: messageId
+        in: path
+        required: true
+        description: The message ID the reaction belongs to
+        schema:
+          type: string
+          format: uuid
+        example: 660e8400-e29b-41d4-a716-446655440001
+      - name: reactionId
+        in: path
+        required: true
+        description: The reaction ID to remove
+        schema:
+          type: string
+          format: uuid
+        example: 990e8400-e29b-41d4-a716-446655440005
+      responses:
+        '204':
+          description: Reaction removed successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v2/messages/{messageId}/delivered:
+    post:
+      summary: Mark a message as delivered
+      description: 'Mark a message as delivered by the current bot.
+
+
+        This endpoint is idempotent. If the message has not been fully persisted yet,
+
+        delivery status is queued and applied when it becomes available.
+
+        '
+      operationId: markMessageDelivered
+      security:
+      - bearerAuth: []
+        hmacSignature: []
+      - oauth2ClientCredentials:
+        - message:write
+      tags:
+      - Messages
+      parameters:
+      - $ref: '#/components/parameters/XSignature'
+      - $ref: '#/components/parameters/XTimestamp'
+      - name: messageId
+        in: path
+        required: true
+        description: The message ID to mark as delivered
+        schema:
+          type: string
+          format: uuid
+        example: 660e8400-e29b-41d4-a716-446655440001
+      responses:
+        '200':
+          description: Message marked as delivered
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v2/messages/{messageId}/read:
+    post:
+      summary: Mark a message as read
+      description: 'Mark a message as read by the current bot.
+
+
+        This endpoint is idempotent. If the message has not been fully persisted yet,
+
+        read status is queued and applied when it becomes available.
+
+        '
+      operationId: markMessageRead
+      security:
+      - bearerAuth: []
+        hmacSignature: []
+      - oauth2ClientCredentials:
+        - message:write
+      tags:
+      - Messages
+      parameters:
+      - $ref: '#/components/parameters/XSignature'
+      - $ref: '#/components/parameters/XTimestamp'
+      - name: messageId
+        in: path
+        required: true
+        description: The message ID to mark as read
+        schema:
+          type: string
+          format: uuid
+        example: 660e8400-e29b-41d4-a716-446655440001
+      responses:
+        '200':
+          description: Message marked as read
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+components:
+  schemas:
+    MessageFileMetaRequest:
+      type: object
+      required:
+      - channelID
+      properties:
+        channelID:
+          type: string
+          format: uuid
+          description: 'Topic ID for the uploaded file message.
+
+            Note: multipart mode uses `channelID` (legacy field name) for compatibility.
+
+            '
+          example: 550e8400-e29b-41d4-a716-446655440000
+        caption:
+          type: string
+          maxLength: 10000
+          description: Optional caption text for the file message
+          example: Quarterly report
+        externalId:
+          type: string
+          maxLength: 100
+          description: Optional external identifier for tracking purposes
+          example: report-2026-q1
+        compressImage:
+          type: boolean
+          description: 'Optional image compression flag.
+
+            Supported only for image uploads.
+
+            '
+          default: false
+    MessageReactionCreateResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Reaction ID
+          example: 990e8400-e29b-41d4-a716-446655440005
+        messageId:
+          type: string
+          format: uuid
+          description: Message ID the reaction belongs to
+          example: 660e8400-e29b-41d4-a716-446655440001
+        reaction:
+          type: string
+          description: The reaction emoji
+          example: 👍
+        createdAt:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds
+          example: 1699564800000
+    MessageReactionCreateRequest:
+      type: object
+      required:
+      - reaction
+      properties:
+        reaction:
+          type: string
+          description: Emoji reaction to add
+          minLength: 1
+          example: 👍
+    MessagePatchRequest:
+      type: object
+      required:
+      - text
+      properties:
+        text:
+          type: string
+          description: Updated message text (max 10000 characters)
+          maxLength: 10000
+          example: Updated message content
+    MessageCreateRequest:
+      type: object
+      required:
+      - topicId
+      - text
+      properties:
+        topicId:
+          type: string
+          format: uuid
+          description: The ID of the topic to send the message to
+          example: 550e8400-e29b-41d4-a716-446655440000
+        text:
+          type: string
+          maxLength: 10000
+          description: 'The message text content.
+
+            To mention a member, use `<@profileId>` inside the text.
+
+            Example: `Hello <@550e8400-e29b-41d4-a716-446655440001>`
+
+            '
+          example: Hello from my integration!
+        externalId:
+          type: string
+          maxLength: 61
+          description: Optional external identifier for tracking purposes
+          example: build-12345
+    MessageFileUploadRequest:
+      type: object
+      required:
+      - metaPart
+      - filePart
+      properties:
+        metaPart:
+          $ref: '#/components/schemas/MessageFileMetaRequest'
+        filePart:
+          type: string
+          format: binary
+          description: File content to upload
+    MessageCreateResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The created message ID
+        topicId:
+          type: string
+          format: uuid
+          description: The topic ID where the message was sent
+        createdAt:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds
+  responses:
+    Forbidden:
+      description: Forbidden - you do not have permission to perform this action
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: forbidden
+    NotFound:
+      description: Resource not found
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: Topic not found
+    Unauthorized:
+      description: Unauthorized - invalid or missing API token
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: unauthorized
+    BadRequest:
+      description: Bad request - invalid input
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: text is required
+    InternalServerError:
+      description: Internal server error
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: internal server error
+  parameters:
+    XTimestamp:
+      name: X-Timestamp
+      in: header
+      required: false
+      description: 'Unix timestamp in milliseconds when the request was created.
+
+        Used for replay protection — requests older than 5 minutes are rejected.
+
+
+        **Required only when authenticating with a static API key.** Omit when using an OAuth access token.
+
+        '
+      schema:
+        type: integer
+        format: int64
+        example: 1699564800000
+    XSignature:
+      name: X-Signature
+      in: header
+      required: false
+      description: "HMAC signature of the request for authentication and replay protection.\n\n**Required only when authenticating with a static API key.** If you are using an OAuth access token (issued by `POST /oauth/token`), omit this header — the JWT carries all the authentication and integrity guarantees.\n\n**Replay Protection:** The signature includes a timestamp to prevent replay attacks.\nRequests with timestamps older than 5 minutes are rejected.\n\nThe signature payload differs by HTTP method:\n- **POST/PUT/PATCH/DELETE**: HMAC-SHA256 of `{timestamp}.{body}`\n- **GET**: HMAC-SHA256 of `{timestamp}.{uri}`\n\nThe signature is calculated as:\n1. Get the current Unix timestamp in milliseconds\n2. Determine the payload:\n   - For POST/PUT/PATCH/DELETE: Use `{timestamp}.{body}` where body is the request body\n   - For GET: Use `{timestamp}.{uri}` where uri is the full request URI (e.g., `/v2/members?limit=10`)\n3. Calculate HMAC-SHA256 of the combined payload using your API secret\n4. Hex-encode the output\n5. Include the timestamp in the `X-Timestamp` header\n\nExample for GET request to `/v2/members?limit=10`:\n```\ntimestamp = 1699564800000\npayload = \"1699564800000./v2/members?limit=10\"\nsignature = HMAC-SHA256(secret, payload)\nX-Signature: hex(signature)\nX-Timestamp: 1699564800000\n```\n\nExample for POST request with body `{\"topicId\":\"123\",\"text\":\"Hello\"}`:\n```\ntimestamp = 1699564800000\npayload = '1699564800000.{\"topicId\":\"123\",\"text\":\"Hello\"}'\nsignature = HMAC-SHA256(secret, payload)\nX-Signature: hex(signature)\nX-Timestamp: 1699564800000\n```\n\nFor `multipart/form-data` requests, sign the exact raw request body bytes\n(including boundaries and file bytes) as transmitted.\n"
+      schema:
+        type: string
+        pattern: ^[a-f0-9]{64}$
+        example: a3d5f8e7c2b1d4f6a8e9c7b5d3f1a2e4b6c8d0f2e4a6b8c0d2e4f6a8b0c2d4e6
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: 'Bearer token for the request. Two flavors:
+
+
+        - **Static API key** — pass your API key (the value returned as `apiKey` when the bot was created). Must be paired with `X-Signature` + `X-Timestamp` (the `hmacSignature` scheme).
+
+        - **OAuth access token** — pass the JWT returned by `POST /oauth/token`. No signature headers are required.
+
+        '
+    hmacSignature:
+      type: apiKey
+      in: header
+      name: X-Signature
+      description: 'HMAC-SHA256 signature for request verification. Required **only** when authenticating with a static API key. Omit when using an OAuth access token.
+
+        '
+    oauth2ClientCredentials:
+      type: oauth2
+      description: 'OAuth 2.0 `client_credentials` grant for API-key bots. Use the `clientId` and `clientSecret` returned when the bot was created (or rotated) to mint short-lived access tokens. See [Authentication](/api-reference/authentication) for details.
+
+
+        Access tokens are bearer JWTs and expire after 1 hour. There is no refresh token — re-mint with the client credentials when the token expires.
+
+        '
+      flows:
+        clientCredentials:
+          tokenUrl: https://api.zenzap.co/oauth/token
+          scopes:
+            channel:list: List topics the bot belongs to
+            channel:read: Read topic metadata
+            channel:write: Create/update topics and manage members
+            message:read: Read messages
+            message:send: Send messages
+            message:write: Edit / delete / mark-delivered / mark-read messages
+            reaction:write: Add and remove reactions on messages
+            task:read: Read tasks
+            task:write: Create / update / delete tasks
+            poll:write: Create polls and cast / retract votes
+            member:read: List organization members
+            updates:read: Long-poll for outbound events

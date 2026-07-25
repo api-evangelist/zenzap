@@ -1,0 +1,553 @@
+openapi: 3.0.3
+info:
+  title: Zenzap External Integration Agentic Polls API
+  description: "API for external applications to integrate with Zenzap.\n## Getting Started\nWelcome to the Zenzap External Integration API documentation. This API is used to integrate with Zenzap.\nAs a context we would like to familiarize you with the Zenzap platform and how it works.\nZenzap is a platform for creating and managing topics and messages.\nTopics (Zenzap term for group chats/channels/conversations) are used to create and manage conversations with your team. Topics are used to group messages and tasks together.\nMessages are used to send and receive messages with your team.\nTasks are used to create and manage tasks with your team.\nMembers are used to manage your team members.\nAPI keys are used to authenticate your requests to the Zenzap API.\nAPI keys are created and managed by the Zenzap admin user.\n\nWhen you create a new API key, it would create a new bot user in Zenzap, on which behalf you can send messages, create topics, create tasks and manage members.\nAll actions you perform with the API key will be performed on behalf of the bot user.\nThe bot can be used within the scope of your organization. You can create topics, send messages, create tasks and manage members on behalf of the bot.\n1. On a Zenzap admin user, go to https://app.zenzap.co/console\n2. Create a new API key with the needed permissions\n3. Copy the API key and secret from the API key settings\n4. For each request:\n   - Add the Authorization header with your API key\n   - Generate a Unix timestamp in milliseconds\n   - Calculate the HMAC-SHA256 signature:\n     - For POST/PUT/PATCH/DELETE: Sign `{timestamp}.{body}`\n     - For GET: Sign `{timestamp}.{uri}` (e.g., `/v2/members?limit=10`)\n   - Add the X-Signature header with the hex-encoded signature\n   - Add the X-Timestamp header with the timestamp used in the payload\n\n## Authentication\nAll API endpoints require two forms of authentication:\n\n1. **Bearer Token**: Include your API key in the Authorization header:\n```\nAuthorization: Bearer YOUR_API_KEY\n```\n\n2. **Request Signing**: Include an HMAC signature and timestamp in headers:\n```\nX-Signature: <HMAC-SHA256 hex-encoded signature>\nX-Timestamp: <Unix timestamp in milliseconds>\n```\nThe signature includes a timestamp for replay protection. Requests older than 5 minutes are rejected.\n\nThe signature payload differs by HTTP method:\n- **POST/PUT/PATCH/DELETE requests**: Sign `{timestamp}.{body}`\n- **GET requests**: Sign `{timestamp}.{uri}`\n\nThe signature is calculated using HMAC-SHA256 with your API secret.\n\n  **How to calculate:**\n  1. Get the current Unix timestamp in milliseconds\n  2. Determine the payload:\n      - **POST/PUT/PATCH/DELETE**: Use `{timestamp}.{body}` (e.g., `1699564800000.{\"topicId\":\"123\"}`)\n      - **GET**: Use `{timestamp}.{uri}` (e.g., `1699564800000./v2/members?limit=10`)\n  3. Calculate HMAC-SHA256 of the payload using your API secret\n  4. Hex-encode the result (64 character lowercase string)\n  5. Include timestamp in X-Timestamp header\n\n  **Example (Python):**\n  ```python\n  import json\n  import hmac\n  import hashlib\n  import time\n  import requests\n\n  def create_topic(name: str, members: list[str], description: str = None, external_id: str = None) -> dict:\n      \"\"\"Create a topic in Zenzap with HMAC signature and replay protection.\"\"\"\n\n      # Build request body\n      body = {\n          \"name\": name,\n          \"members\": members,\n      }\n      if description:\n          body[\"description\"] = description\n      if external_id:\n          body[\"externalId\"] = external_id\n\n      # Serialize body (no spaces for consistent signing)\n      body_json = json.dumps(body, separators=(\",\", \":\"))\n\n      # Get timestamp for replay protection\n      timestamp = int(time.time() * 1000)  # Unix milliseconds\n\n      # Create HMAC-SHA256 signature with timestamp\n      signature_payload = f\"{timestamp}.{body_json}\"\n      signature = hmac.new(\n          API_SECRET.encode(),\n          signature_payload.encode(),\n          hashlib.sha256\n      ).hexdigest()\n\n      # Make request\n      headers = {\n          \"Authorization\": f\"Bearer {API_KEY}\",\n          \"Content-Type\": \"application/json\",\n          \"X-Signature\": signature,\n          \"X-Timestamp\": str(timestamp),\n      }\n\n      response = requests.post(f\"{BASE_URL}/v2/topics\", headers=headers, data=body_json)\n      response.raise_for_status()\n      return response.json()\n  ```\n\n  **Note:** Our API documentation tools cannot automatically generate HMAC signatures. You will need to calculate this manually or use a tool like Postman with pre-request scripts.\n\n\n## Rate Limits\nAPI requests are rate limited per organization. Contact support for specific limits.\n"
+  version: 2.0.0
+  contact:
+    name: Zenzap Support
+    url: https://zenzap.co/support
+servers:
+- url: https://api.zenzap.co
+  description: Production server
+security:
+- bearerAuth: []
+  hmacSignature: []
+- oauth2ClientCredentials: []
+tags:
+- name: Polls
+  description: 'Operations for creating polls, recording votes, and retracting votes.
+
+
+    Polls are posted as messages in a topic. When you create a poll, each option is assigned a server-generated 6-character ID — use those IDs as `optionId` when submitting votes.
+
+
+    **Voting constraints:**
+
+    - The bot must be a member of the topic the poll was posted in
+
+    - Anonymous polls (`anonymous: true`) do not support voting via the API
+
+    - Votes cannot be cast on closed or expired polls
+
+    - Each `{pollId, optionId, voter}` combination is idempotent
+
+    - Votes can be retracted with `DELETE /v2/polls/{pollId}/votes/{voteId}` using the `id` returned when the vote was cast
+
+    '
+paths:
+  /v2/polls:
+    post:
+      summary: Create a poll
+      description: 'Create a poll in a topic. The bot must be a member of the topic.
+
+
+        Polls are sent as messages. Each option text is stored server-side with a
+
+        server-generated 6-character ID — use those IDs when submitting votes.
+
+
+        **Anonymous polls** (`anonymous: true`) do not support voting via the API.
+
+        '
+      operationId: createPoll
+      security:
+      - bearerAuth: []
+        hmacSignature: []
+      - oauth2ClientCredentials:
+        - poll:write
+      tags:
+      - Polls
+      parameters:
+      - $ref: '#/components/parameters/XSignature'
+      - $ref: '#/components/parameters/XTimestamp'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PollCreateRequest'
+            example:
+              topicId: 550e8400-e29b-41d4-a716-446655440000
+              question: Which release should we prioritize?
+              options:
+              - Bug fixes
+              - New features
+              - Performance improvements
+              selectionType: single
+      responses:
+        '201':
+          description: Poll created successfully. The `id` field is the poll ID — use it as `{pollId}` when calling `POST /v2/polls/{pollId}/votes`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollCreateResponse'
+              example:
+                id: 770e8400-e29b-41d4-a716-446655440099
+                topicId: 550e8400-e29b-41d4-a716-446655440000
+                question: Which release should we prioritize?
+                options:
+                - id: a1b2c3
+                  text: Bug fixes
+                - id: d4e5f6
+                  text: New features
+                - id: g7h8i9
+                  text: Performance improvements
+                selectionType: single
+                status: active
+                createdAt: 1699564800000
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+              examples:
+                topicIdRequired:
+                  summary: Missing topicId
+                  value:
+                    message: topicId is required
+                questionRequired:
+                  summary: Missing question
+                  value:
+                    message: question is required
+                questionTooLong:
+                  summary: Question too long
+                  value:
+                    message: question too long
+                invalidSelectionType:
+                  summary: Invalid selectionType
+                  value:
+                    message: selectionType must be "single" or "multiple"
+                tooFewOptions:
+                  summary: Too few options
+                  value:
+                    message: at least 2 options are required
+                tooManyOptions:
+                  summary: Too many options
+                  value:
+                    message: too many options
+                emptyOption:
+                  summary: Empty option text
+                  value:
+                    message: option text cannot be empty
+                optionTooLong:
+                  summary: Option text too long
+                  value:
+                    message: option text too long
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Bot is not a member of the topic
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+              example:
+                message: active profile is not a member of topic
+        '404':
+          description: Topic not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+              example:
+                message: topic not found
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v2/polls/{pollId}/votes:
+    post:
+      summary: Vote on a poll
+      description: 'Submit a vote on a poll on behalf of the bot. The bot must be a member of the topic the poll was posted in.
+
+
+        Use the `id` values from the `options` array in the `POST /v2/polls` response as the `optionId`.
+
+
+        **Constraints:**
+
+        - Anonymous polls do not support voting via the API
+
+        - Votes cannot be cast on closed or expired polls
+
+        - Each `{pollId, optionId, voter}` combination is idempotent — re-submitting the same vote is a no-op
+
+        '
+      operationId: createPollVote
+      security:
+      - bearerAuth: []
+        hmacSignature: []
+      - oauth2ClientCredentials:
+        - poll:write
+      tags:
+      - Polls
+      parameters:
+      - $ref: '#/components/parameters/XSignature'
+      - $ref: '#/components/parameters/XTimestamp'
+      - name: pollId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: The poll ID (returned as `id` in the create poll response)
+        example: 770e8400-e29b-41d4-a716-446655440099
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PollVoteCreateRequest'
+            example:
+              optionId: a1b2c3
+      responses:
+        '201':
+          description: Vote recorded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollVoteCreateResponse'
+              example:
+                id: 770e8400-e29b-41d4-a716-446655440099_a1b2c3_b@f951b968-bf80-4ee6-bbbe-6ca338f57fc6
+                attachmentId: 770e8400-e29b-41d4-a716-446655440099
+                optionId: a1b2c3
+                createdAt: 1699564800000
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+              examples:
+                invalidAttachmentId:
+                  summary: Invalid attachment ID format
+                  value:
+                    message: invalid attachmentId
+                invalidOptionId:
+                  summary: Invalid option ID
+                  value:
+                    message: optionId must be non-empty and at most 6 characters
+                notAPoll:
+                  summary: Attachment is not a poll
+                  value:
+                    message: attachment is not a poll
+                anonymousPoll:
+                  summary: Anonymous poll — voting not supported
+                  value:
+                    message: anonymous polls are not supported
+                pollClosed:
+                  summary: Poll is closed
+                  value:
+                    message: poll is closed
+                pollExpired:
+                  summary: Poll has expired
+                  value:
+                    message: poll has expired
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Bot is not a member of the topic
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+              example:
+                message: active profile is not a member of topic
+        '404':
+          description: Poll not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+              example:
+                message: poll not found
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v2/polls/{pollId}/votes/{voteId}:
+    delete:
+      summary: Delete a poll vote
+      description: 'Retract a previously cast vote on a poll. Provide the poll ID and the vote ID returned when the vote was cast.
+
+        '
+      operationId: deletePollVote
+      security:
+      - bearerAuth: []
+        hmacSignature: []
+      - oauth2ClientCredentials:
+        - poll:write
+      tags:
+      - Polls
+      parameters:
+      - $ref: '#/components/parameters/XSignature'
+      - $ref: '#/components/parameters/XTimestamp'
+      - name: pollId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: The poll ID (returned as `id` in the create poll response)
+        example: 770e8400-e29b-41d4-a716-446655440099
+      - name: voteId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The vote ID (returned as `id` in the create vote response)
+        example: 770e8400-e29b-41d4-a716-446655440099_a1b2c3_b@f951b968-bf80-4ee6-bbbe-6ca338f57fc6
+      responses:
+        '204':
+          description: Vote deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Vote not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+              example:
+                message: vote not found
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+components:
+  schemas:
+    PollVoteCreateRequest:
+      type: object
+      required:
+      - optionId
+      properties:
+        optionId:
+          type: string
+          maxLength: 6
+          description: The ID of the option to vote for. Use the `id` values from the `options` array in the create poll response.
+          example: a1b2c3
+    PollVoteCreateResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique vote ID (composite of attachmentId, optionId, and voter profile ID).
+          example: 770e8400-e29b-41d4-a716-446655440099_a1b2c3_b@f951b968-bf80-4ee6-bbbe-6ca338f57fc6
+        attachmentId:
+          type: string
+          format: uuid
+          description: The poll's attachment ID.
+          example: 770e8400-e29b-41d4-a716-446655440099
+        optionId:
+          type: string
+          description: The option that was voted for.
+          example: a1b2c3
+        createdAt:
+          type: integer
+          format: int64
+          description: Vote creation timestamp in milliseconds.
+          example: 1699564800000
+    PollOption:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Server-generated 6-character option ID. Use this as `optionId` when voting.
+          example: a1b2c3
+        text:
+          type: string
+          description: Display text for this option.
+          example: Bug fixes
+    PollCreateResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The poll ID. Use this as the `pollId` path parameter when voting.
+          example: 770e8400-e29b-41d4-a716-446655440099
+        topicId:
+          type: string
+          format: uuid
+          description: ID of the topic the poll was posted in.
+          example: 550e8400-e29b-41d4-a716-446655440000
+        question:
+          type: string
+          description: The poll question.
+          example: Which release should we prioritize?
+        options:
+          type: array
+          description: Poll options with their server-generated IDs.
+          items:
+            $ref: '#/components/schemas/PollOption'
+        selectionType:
+          type: string
+          enum:
+          - single
+          - multiple
+          example: single
+        status:
+          type: string
+          enum:
+          - active
+          - closed
+          description: Current poll status.
+          example: active
+        anonymous:
+          type: boolean
+          description: Whether the poll is anonymous.
+          example: false
+        createdAt:
+          type: integer
+          format: int64
+          description: Creation timestamp in milliseconds.
+          example: 1699564800000
+    PollCreateRequest:
+      type: object
+      required:
+      - topicId
+      - question
+      - options
+      - selectionType
+      properties:
+        topicId:
+          type: string
+          format: uuid
+          description: ID of the topic to post the poll in. The bot must be a member.
+          example: 550e8400-e29b-41d4-a716-446655440000
+        question:
+          type: string
+          maxLength: 500
+          description: The poll question / title.
+          example: Which release should we prioritize?
+        options:
+          type: array
+          minItems: 2
+          maxItems: 10
+          description: Poll answer options. Each item is the display text; IDs are generated server-side.
+          items:
+            type: string
+            maxLength: 1000
+          example:
+          - Bug fixes
+          - New features
+          - Performance improvements
+        selectionType:
+          type: string
+          enum:
+          - single
+          - multiple
+          description: 'Whether voters may select one or multiple options:
+
+            - `single`: one choice allowed
+
+            - `multiple`: any number of choices allowed
+
+            '
+          example: single
+        anonymous:
+          type: boolean
+          description: 'If `true`, voter identities are hidden. Anonymous polls do **not** support voting via the API.
+
+            '
+          example: false
+  parameters:
+    XSignature:
+      name: X-Signature
+      in: header
+      required: false
+      description: "HMAC signature of the request for authentication and replay protection.\n\n**Required only when authenticating with a static API key.** If you are using an OAuth access token (issued by `POST /oauth/token`), omit this header — the JWT carries all the authentication and integrity guarantees.\n\n**Replay Protection:** The signature includes a timestamp to prevent replay attacks.\nRequests with timestamps older than 5 minutes are rejected.\n\nThe signature payload differs by HTTP method:\n- **POST/PUT/PATCH/DELETE**: HMAC-SHA256 of `{timestamp}.{body}`\n- **GET**: HMAC-SHA256 of `{timestamp}.{uri}`\n\nThe signature is calculated as:\n1. Get the current Unix timestamp in milliseconds\n2. Determine the payload:\n   - For POST/PUT/PATCH/DELETE: Use `{timestamp}.{body}` where body is the request body\n   - For GET: Use `{timestamp}.{uri}` where uri is the full request URI (e.g., `/v2/members?limit=10`)\n3. Calculate HMAC-SHA256 of the combined payload using your API secret\n4. Hex-encode the output\n5. Include the timestamp in the `X-Timestamp` header\n\nExample for GET request to `/v2/members?limit=10`:\n```\ntimestamp = 1699564800000\npayload = \"1699564800000./v2/members?limit=10\"\nsignature = HMAC-SHA256(secret, payload)\nX-Signature: hex(signature)\nX-Timestamp: 1699564800000\n```\n\nExample for POST request with body `{\"topicId\":\"123\",\"text\":\"Hello\"}`:\n```\ntimestamp = 1699564800000\npayload = '1699564800000.{\"topicId\":\"123\",\"text\":\"Hello\"}'\nsignature = HMAC-SHA256(secret, payload)\nX-Signature: hex(signature)\nX-Timestamp: 1699564800000\n```\n\nFor `multipart/form-data` requests, sign the exact raw request body bytes\n(including boundaries and file bytes) as transmitted.\n"
+      schema:
+        type: string
+        pattern: ^[a-f0-9]{64}$
+        example: a3d5f8e7c2b1d4f6a8e9c7b5d3f1a2e4b6c8d0f2e4a6b8c0d2e4f6a8b0c2d4e6
+    XTimestamp:
+      name: X-Timestamp
+      in: header
+      required: false
+      description: 'Unix timestamp in milliseconds when the request was created.
+
+        Used for replay protection — requests older than 5 minutes are rejected.
+
+
+        **Required only when authenticating with a static API key.** Omit when using an OAuth access token.
+
+        '
+      schema:
+        type: integer
+        format: int64
+        example: 1699564800000
+  responses:
+    Unauthorized:
+      description: Unauthorized - invalid or missing API token
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: unauthorized
+    InternalServerError:
+      description: Internal server error
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: internal server error
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: 'Bearer token for the request. Two flavors:
+
+
+        - **Static API key** — pass your API key (the value returned as `apiKey` when the bot was created). Must be paired with `X-Signature` + `X-Timestamp` (the `hmacSignature` scheme).
+
+        - **OAuth access token** — pass the JWT returned by `POST /oauth/token`. No signature headers are required.
+
+        '
+    hmacSignature:
+      type: apiKey
+      in: header
+      name: X-Signature
+      description: 'HMAC-SHA256 signature for request verification. Required **only** when authenticating with a static API key. Omit when using an OAuth access token.
+
+        '
+    oauth2ClientCredentials:
+      type: oauth2
+      description: 'OAuth 2.0 `client_credentials` grant for API-key bots. Use the `clientId` and `clientSecret` returned when the bot was created (or rotated) to mint short-lived access tokens. See [Authentication](/api-reference/authentication) for details.
+
+
+        Access tokens are bearer JWTs and expire after 1 hour. There is no refresh token — re-mint with the client credentials when the token expires.
+
+        '
+      flows:
+        clientCredentials:
+          tokenUrl: https://api.zenzap.co/oauth/token
+          scopes:
+            channel:list: List topics the bot belongs to
+            channel:read: Read topic metadata
+            channel:write: Create/update topics and manage members
+            message:read: Read messages
+            message:send: Send messages
+            message:write: Edit / delete / mark-delivered / mark-read messages
+            reaction:write: Add and remove reactions on messages
+            task:read: Read tasks
+            task:write: Create / update / delete tasks
+            poll:write: Create polls and cast / retract votes
+            member:read: List organization members
+            updates:read: Long-poll for outbound events

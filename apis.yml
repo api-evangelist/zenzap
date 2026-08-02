@@ -1,8 +1,16 @@
 aid: zenzap
 name: ZenZap
-description: 'ZenZap is a company surfaced as a portfolio company of bessemer-venture-partners and added
-  to the API Evangelist network as a stub for enrichment. Sector: ai-ml. This profile is a lead awaiting
-  the enrichment pipeline.'
+description: >-
+  Zenzap is an AI-native work communication platform — "Work Chat Built for the
+  AI Era" — used by teams in healthcare, hospitality, construction, food
+  service, retail, franchise, manufacturing, and non-profit operations. It
+  organizes work into topics (group chats / channels / conversations) carrying
+  messages, tasks, polls, reactions, and file attachments, with HIPAA and SOC 2
+  compliance, SAML SSO, and SCIM provisioning for enterprises. The Zenzap
+  External Integration API (v2) lets external applications and AI agents act as
+  bots: create topics, send and manage messages, run tasks and polls, manage
+  members, and receive events by webhook or long polling. Backed by Bessemer
+  Venture Partners.
 url: https://raw.githubusercontent.com/api-evangelist/zenzap/refs/heads/main/apis.yml
 x-type: company
 x-source: vc-portfolio
@@ -10,18 +18,257 @@ x-backed-by:
 - bessemer-venture-partners
 x-tier: stub
 x-tier-reason: portfolio-lead
+accessModel:
+  pricing: unknown
+  onboarding: self-serve
+  trial: false
+  try_now: false
+  public: false
+  label: Self-serve signup
+  confidence: medium
+  source:
+  - authentication
+  generated: '2026-07-22'
+  method: derived
 specificationVersion: '0.20'
 created: '2026-07-17'
-modified: '2026-07-17'
+modified: '2026-07-21'
+image: https://cdn.prod.website-files.com/6559c53afcb17d5a5995bfc0/683d76d5c705aada2bab4c9e_Open%20graph%20visual.png
 tags:
 - Company
 - Ai Ml
-apis: []
+- Messaging
+- Team Communication
+- Collaboration
+- Chat
+- Bots
+- Webhooks
+- Productivity
+- Tasks
 maintainers:
 - FN: Kin Lane
   email: kin@apievangelist.com
 - FN: APIs.json
   email: info@apis.io
+apis:
+- aid: zenzap:zenzap-agentic-api
+  name: ZenZap Agentic API
+  description: >-
+    Endpoints for AI agents to programmatically set up Zenzap organizations.
+
+
+    Use `POST /v2/agentic/organization/create` to create an organization, install a bot, and invite a
+    human user in a single request — no authentication required.
+  humanURL: https://docs.zenzap.co/api-reference/getting-started
+  baseURL: https://api.zenzap.co
+  tags:
+  - Agentic
+  properties:
+  - type: OpenAPI
+    url: openapi/zenzap-agentic-api-openapi.yml
+  - type: RateLimits
+    url: https://docs.zenzap.co/api-reference/rate-limits
+- aid: zenzap:zenzap-long-polling-api
+  name: ZenZap Long Polling API
+  description: >-
+    Long polling allows your integration to fetch outbound events instead of receiving webhooks.
+
+
+    Use `GET /v2/updates` with:
+
+    - `offset`: value returned as `nextOffset` from the previous response
+
+    - `limit`: max updates per request (default 50, max 100)
+
+    - `timeout`: wait time in seconds when no updates are available (default 0, max 30)
+
+
+    Event payloads in polling responses match webhook `data` payloads for the same event type.
+
+    This includes `data.message.attachments[]` with signed URLs for file/image/video/audio messages.
+  humanURL: https://docs.zenzap.co/api-reference/getting-started
+  baseURL: https://api.zenzap.co
+  tags:
+  - Long Polling
+  properties:
+  - type: OpenAPI
+    url: openapi/zenzap-long-polling-api-openapi.yml
+  - type: RateLimits
+    url: https://docs.zenzap.co/api-reference/rate-limits
+- aid: zenzap:zenzap-members-api
+  name: ZenZap Members API
+  description: Operations for retrieving organization members
+  humanURL: https://docs.zenzap.co/api-reference/getting-started
+  baseURL: https://api.zenzap.co
+  tags:
+  - Members
+  properties:
+  - type: OpenAPI
+    url: openapi/zenzap-members-api-openapi.yml
+  - type: RateLimits
+    url: https://docs.zenzap.co/api-reference/rate-limits
+- aid: zenzap:zenzap-messages-api
+  name: ZenZap Messages API
+  description: Operations for sending messages
+  humanURL: https://docs.zenzap.co/api-reference/getting-started
+  baseURL: https://api.zenzap.co
+  tags:
+  - Messages
+  properties:
+  - type: OpenAPI
+    url: openapi/zenzap-messages-api-openapi.yml
+  - type: RateLimits
+    url: https://docs.zenzap.co/api-reference/rate-limits
+- aid: zenzap:zenzap-oauth-api
+  name: ZenZap OAuth API
+  description: >-
+    OAuth 2.0 `client_credentials` grant. Used by API-key bots that were created with `credentialType:
+    oauth` to mint short-lived bearer access tokens.
+
+
+    **In a nutshell:**
+
+    1. Get a `clientId` and `clientSecret` from your bot in the Zenzap admin console. The `clientSecret`
+    is shown once at creation; if lost, rotate it from the same screen.
+
+    2. `POST /oauth/token` with `grant_type=client_credentials` to receive a JWT access token (1-hour
+    TTL).
+
+    3. Call any `/v2/*` endpoint with `Authorization: Bearer <access_token>`. No `X-Signature` / `X-Timestamp`
+    headers are needed on the OAuth path.
+
+    4. Re-mint when the token expires. There is **no refresh token**.
+
+
+    Scopes are granular per endpoint — see the [Authentication page](/api-reference/authentication#oauth-scopes)
+    for the full scope catalog and the endpoint → scope mapping.
+  humanURL: https://docs.zenzap.co/api-reference/getting-started
+  baseURL: https://api.zenzap.co
+  tags:
+  - OAuth
+  properties:
+  - type: OpenAPI
+    url: openapi/zenzap-oauth-api-openapi.yml
+  - type: RateLimits
+    url: https://docs.zenzap.co/api-reference/rate-limits
+- aid: zenzap:zenzap-polls-api
+  name: ZenZap Polls API
+  description: >-
+    Operations for creating polls, recording votes, and retracting votes.
+
+
+    Polls are posted as messages in a topic. When you create a poll, each option is assigned a server-generated
+    6-character ID — use those IDs as `optionId` when submitting votes.
+
+
+    **Voting constraints:**
+
+    - The bot must be a member of the topic the poll was posted in
+
+    - Anonymous polls (`anonymous: true`) do not support voting via the API
+
+    - Votes cannot be cast on closed or expired polls
+
+    - Each `{pollId, optionId, voter}` combination is idempotent
+
+    - Votes can be retracted with `DELETE /v2/polls/{pollId}/votes/{voteId}` using the `id` returned when
+    the vote was cast
+  humanURL: https://docs.zenzap.co/api-reference/getting-started
+  baseURL: https://api.zenzap.co
+  tags:
+  - Polls
+  properties:
+  - type: OpenAPI
+    url: openapi/zenzap-polls-api-openapi.yml
+  - type: RateLimits
+    url: https://docs.zenzap.co/api-reference/rate-limits
+- aid: zenzap:zenzap-tasks-api
+  name: ZenZap Tasks API
+  description: Operations for managing tasks
+  humanURL: https://docs.zenzap.co/api-reference/getting-started
+  baseURL: https://api.zenzap.co
+  tags:
+  - Tasks
+  properties:
+  - type: OpenAPI
+    url: openapi/zenzap-tasks-api-openapi.yml
+  - type: RateLimits
+    url: https://docs.zenzap.co/api-reference/rate-limits
+- aid: zenzap:zenzap-topics-group-chats-channels-conversations-api
+  name: ZenZap Topics (group chats/channels/conversations) API
+  description: Operations for managing topics (group chats/channels/conversations)
+  humanURL: https://docs.zenzap.co/api-reference/getting-started
+  baseURL: https://api.zenzap.co
+  tags:
+  - Topics (group chats/channels/conversations)
+  properties:
+  - type: OpenAPI
+    url: openapi/zenzap-topics-group-chats-channels-conversations-api-openapi.yml
+  - type: RateLimits
+    url: https://docs.zenzap.co/api-reference/rate-limits
 common:
+- type: DeveloperPortal
+  url: https://docs.zenzap.co/
+- type: Documentation
+  url: https://docs.zenzap.co/
+- type: APIReference
+  url: https://docs.zenzap.co/api-reference/getting-started
+- type: GettingStarted
+  url: https://docs.zenzap.co/api-reference/getting-started
+- type: Quickstart
+  url: https://docs.zenzap.co/quickstart
+- type: Support
+  url: https://knowledge.zenzap.co/
+- type: Blog
+  url: https://www.zenzap.co/blog-posts
+- type: Pricing
+  url: https://www.zenzap.co/pricing
+- type: SignUp
+  url: https://onelink-invites.zenzap.co/7Aqe/7f0o4ql4
+- type: Login
+  url: https://app.zenzap.co/login
+- type: TermsOfService
+  url: https://www.zenzap.co/terms-of-use
+- type: PrivacyPolicy
+  url: https://www.zenzap.co/privacy-policy
+- type: Authentication
+  url: authentication/zenzap-authentication.yml
+- type: OAuthScopes
+  url: scopes/zenzap-scopes.yml
+- type: AgenticAccess
+  url: agentic-access/zenzap-agentic-access.yml
+- type: DomainSecurity
+  url: security/zenzap-domain-security.yml
+- type: TrustCenter
+  url: security/zenzap-trust-center.yml
+- type: Compliance
+  url: https://www.zenzap.co/trust-center
+- type: Conformance
+  url: conformance/zenzap-conformance.yml
+- type: ErrorCatalog
+  url: errors/zenzap-problem-types.yml
+- type: Lifecycle
+  url: lifecycle/zenzap-lifecycle.yml
+- type: Conventions
+  url: conventions/zenzap-conventions.yml
+- type: Idempotency
+  url: conventions/zenzap-conventions.yml
+- type: DataModel
+  url: data-model/zenzap-data-model.yml
+- type: MCPServer
+  url: mcp/zenzap-mcp.yml
+- type: LLMsTxt
+  url: llms/zenzap-llms.txt
+- type: Overlay
+  url: overlays/zenzap-openapi-overlay.yaml
+- type: Webhooks
+  url: asyncapi/zenzap-webhooks.yml
+- type: AgentSkill
+  url: skills/_index.yml
 - type: Website
   url: https://www.zenzap.co/
+x-enrichment:
+  date: '2026-07-21'
+  status: enriched
+  artifacts_added: 16
+  pass: local-v1

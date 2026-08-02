@@ -1,0 +1,49 @@
+generated: '2026-07-21'
+method: searched
+source: openapi/zenzap-openapi-original.yml
+docs: https://docs.zenzap.co/api-reference/authentication
+notes: >-
+  Two credential types work against the same /v2/* endpoints: a static API key
+  (Authorization: Bearer + X-Signature HMAC-SHA256 over "{timestamp}.{body}" or
+  "{timestamp}.{uri}" + X-Timestamp; timestamps >5 min are rejected), or an
+  OAuth 2.0 client_credentials bearer JWT (expires_in default 3600s, no refresh).
+summary:
+  types:
+  - apiKey
+  - http
+  - oauth2
+  api_key_in:
+  - header
+  oauth2_flows:
+  - clientCredentials
+schemes:
+- name: bearerAuth
+  type: http
+  scheme: bearer
+  description: |-
+    Bearer token for the request. Two flavors:
+
+    - **Static API key** — pass your API key (the value returned as `apiKey` when the bot was created). Must be paired with `X-Signature` + `X-Timestamp` (the `hmacSignature` scheme).
+    - **OAuth access token** — pass the JWT returned by `POST /oauth/token`. No signature headers are required.
+  sources:
+  - openapi/zenzap-openapi-original.yml
+- name: hmacSignature
+  type: apiKey
+  in: header
+  parameter: X-Signature
+  description: HMAC-SHA256 signature for request verification. Required **only** when authenticating
+    with a static API key. Omit when using an OAuth access token.
+  sources:
+  - openapi/zenzap-openapi-original.yml
+- name: oauth2ClientCredentials
+  type: oauth2
+  flows:
+  - flow: clientCredentials
+    tokenUrl: https://api.zenzap.co/oauth/token
+    scopes: 12
+  description: |-
+    OAuth 2.0 `client_credentials` grant for API-key bots. Use the `clientId` and `clientSecret` returned when the bot was created (or rotated) to mint short-lived access tokens. See [Authentication](/api-reference/authentication) for details.
+
+    Access tokens are bearer JWTs and expire after 1 hour. There is no refresh token — re-mint with the client credentials when the token expires.
+  sources:
+  - openapi/zenzap-openapi-original.yml

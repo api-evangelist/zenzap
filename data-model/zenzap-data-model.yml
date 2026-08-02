@@ -1,0 +1,80 @@
+generated: '2026-07-21'
+method: derived
+source: openapi/zenzap-openapi-original.yml
+entities:
+- name: Organization
+  description: Top-level tenant; created via the agentic onboarding flow.
+- name: Member
+  description: A person or bot user within an organization. The API key acts as a bot member.
+- name: Topic
+  description: Group chat / channel / conversation grouping messages and tasks. May carry an externalId.
+- name: Message
+  description: A message posted in a topic; types include text, image, file, video, audio, location, task, contact.
+- name: Reaction
+  description: An emoji reaction attached to a message.
+- name: Task
+  description: A work item in a topic, assignable with a due date; supports sub-items.
+- name: Poll
+  description: A poll posted in a topic with options.
+- name: PollVote
+  description: A vote cast by a member on a poll option.
+- name: Attachment
+  description: A file attached to a message, with a signed expiring download URL.
+relationships:
+- from: Topic
+  to: Member
+  type: has_many
+  via: memberIds
+- from: Topic
+  to: Message
+  type: has_many
+  via: topicId
+- from: Message
+  to: Topic
+  type: belongs_to
+  via: topicId
+- from: Message
+  to: Member
+  type: belongs_to
+  via: senderId
+- from: Message
+  to: Message
+  type: belongs_to
+  via: parentId
+- from: Message
+  to: Reaction
+  type: has_many
+  via: messageId
+- from: Message
+  to: Attachment
+  type: has_many
+  via: attachments
+- from: Task
+  to: Topic
+  type: belongs_to
+  via: topicId
+- from: Task
+  to: Member
+  type: belongs_to
+  via: assignee
+- from: Task
+  to: Task
+  type: belongs_to
+  via: parentId
+- from: Poll
+  to: Topic
+  type: belongs_to
+  via: topicId
+- from: PollVote
+  to: Poll
+  type: belongs_to
+  via: pollId
+- from: PollVote
+  to: Member
+  type: belongs_to
+  via: voterId
+id_conventions:
+  member_bot: 'b@{uuid} for bots, {uuid} for users'
+  event: 'evt_{uuid}'
+  attachment: 'att_{uuid}'
+  format: UUID-based identifiers

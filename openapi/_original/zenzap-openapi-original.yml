@@ -1,0 +1,4587 @@
+openapi: 3.0.3
+info:
+  title: Zenzap External Integration API
+  description: >
+    API for external applications to integrate with Zenzap.
+
+    ## Getting Started
+
+    Welcome to the Zenzap External Integration API documentation. This API is
+    used to integrate with Zenzap.
+
+    As a context we would like to familiarize you with the Zenzap platform and
+    how it works.
+
+    Zenzap is a platform for creating and managing topics and messages.
+
+    Topics (Zenzap term for group chats/channels/conversations) are used to
+    create and manage conversations with your team. Topics are used to group
+    messages and tasks together.
+
+    Messages are used to send and receive messages with your team.
+
+    Tasks are used to create and manage tasks with your team.
+
+    Members are used to manage your team members.
+
+    API keys are used to authenticate your requests to the Zenzap API.
+
+    API keys are created and managed by the Zenzap admin user.
+
+
+    When you create a new API key, it would create a new bot user in Zenzap, on
+    which behalf you can send messages, create topics, create tasks and manage
+    members.
+
+    All actions you perform with the API key will be performed on behalf of the
+    bot user.
+
+    The bot can be used within the scope of your organization. You can create
+    topics, send messages, create tasks and manage members on behalf of the bot.
+
+    1. On a Zenzap admin user, go to https://app.zenzap.co/console
+
+    2. Create a new API key with the needed permissions
+
+    3. Copy the API key and secret from the API key settings
+
+    4. For each request:
+       - Add the Authorization header with your API key
+       - Generate a Unix timestamp in milliseconds
+       - Calculate the HMAC-SHA256 signature:
+         - For POST/PUT/PATCH/DELETE: Sign `{timestamp}.{body}`
+         - For GET: Sign `{timestamp}.{uri}` (e.g., `/v2/members?limit=10`)
+       - Add the X-Signature header with the hex-encoded signature
+       - Add the X-Timestamp header with the timestamp used in the payload
+
+    ## Authentication
+
+    All API endpoints require two forms of authentication:
+
+
+    1. **Bearer Token**: Include your API key in the Authorization header:
+
+    ```
+
+    Authorization: Bearer YOUR_API_KEY
+
+    ```
+
+
+    2. **Request Signing**: Include an HMAC signature and timestamp in headers:
+
+    ```
+
+    X-Signature: <HMAC-SHA256 hex-encoded signature>
+
+    X-Timestamp: <Unix timestamp in milliseconds>
+
+    ```
+
+    The signature includes a timestamp for replay protection. Requests older
+    than 5 minutes are rejected.
+
+
+    The signature payload differs by HTTP method:
+
+    - **POST/PUT/PATCH/DELETE requests**: Sign `{timestamp}.{body}`
+
+    - **GET requests**: Sign `{timestamp}.{uri}`
+
+
+    The signature is calculated using HMAC-SHA256 with your API secret.
+
+      **How to calculate:**
+      1. Get the current Unix timestamp in milliseconds
+      2. Determine the payload:
+          - **POST/PUT/PATCH/DELETE**: Use `{timestamp}.{body}` (e.g., `1699564800000.{"topicId":"123"}`)
+          - **GET**: Use `{timestamp}.{uri}` (e.g., `1699564800000./v2/members?limit=10`)
+      3. Calculate HMAC-SHA256 of the payload using your API secret
+      4. Hex-encode the result (64 character lowercase string)
+      5. Include timestamp in X-Timestamp header
+
+      **Example (Python):**
+      ```python
+      import json
+      import hmac
+      import hashlib
+      import time
+      import requests
+
+      def create_topic(name: str, members: list[str], description: str = None, external_id: str = None) -> dict:
+          """Create a topic in Zenzap with HMAC signature and replay protection."""
+
+          # Build request body
+          body = {
+              "name": name,
+              "members": members,
+          }
+          if description:
+              body["description"] = description
+          if external_id:
+              body["externalId"] = external_id
+
+          # Serialize body (no spaces for consistent signing)
+          body_json = json.dumps(body, separators=(",", ":"))
+
+          # Get timestamp for replay protection
+          timestamp = int(time.time() * 1000)  # Unix milliseconds
+
+          # Create HMAC-SHA256 signature with timestamp
+          signature_payload = f"{timestamp}.{body_json}"
+          signature = hmac.new(
+              API_SECRET.encode(),
+              signature_payload.encode(),
+              hashlib.sha256
+          ).hexdigest()
+
+          # Make request
+          headers = {
+              "Authorization": f"Bearer {API_KEY}",
+              "Content-Type": "application/json",
+              "X-Signature": signature,
+              "X-Timestamp": str(timestamp),
+          }
+
+          response = requests.post(f"{BASE_URL}/v2/topics", headers=headers, data=body_json)
+          response.raise_for_status()
+          return response.json()
+      ```
+
+      **Note:** Our API documentation tools cannot automatically generate HMAC signatures. You will need to calculate this manually or use a tool like Postman with pre-request scripts.
+
+
+    ## Rate Limits
+
+    API requests are rate limited per organization. Contact support for specific
+    limits.
+  version: 2.0.0
+  contact:
+    name: Zenzap Support
+    url: https://zenzap.co/support
+servers:
+  - url: https://api.zenzap.co
+    description: Production server
+security:
+  - bearerAuth: []
+    hmacSignature: []
+  - oauth2ClientCredentials: []
+paths:
+  /v2/messages:
+    post:
+      summary: Send a message
+      description: |
+        Send a message to a topic. Your API key bot will appear as the sender.
+
+        Supported request modes:
+        - `application/json` for text messages
+        - `multipart/form-data` for file/image messages
+
+        Mentions:
+        - Mention members directly in `text` using `<@profileId>`
+        - Example: `Hello <@550e8400-e29b-41d4-a716-446655440001>`
+        - Mentioned profiles must be members of the topic
+
+        Limits:
+        - message length is limited to 10000 characters
+      operationId: createMessage
+      security:
+        - bearerAuth: []
+          hmacSignature: []
+        - oauth2ClientCredentials:
+            - message:send
+      tags:
+        - Messages
+      parameters:
+        - $ref: '#/components/parameters/XSignature'
+        - $ref: '#/components/parameters/XTimestamp'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MessageCreateRequest'
+            examples:
+              basic:
+                summary: Basic message
+                value:
+                  topicId: 550e8400-e29b-41d4-a716-446655440000
+                  text: Hello from my integration!
+              withExternalId:
+                summary: Message with external ID
+                value:
+                  topicId: 550e8400-e29b-41d4-a716-446655440000
+                  text: 'Status update: Build completed successfully'
+                  externalId: build-12345
+              withMention:
+                summary: Message with mention
+                value:
+                  topicId: 550e8400-e29b-41d4-a716-446655440000
+                  text: >-
+                    Hi <@550e8400-e29b-41d4-a716-446655440001>, can you review
+                    this?
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MessageFileUploadRequest'
+            encoding:
+              metaPart:
+                contentType: application/json
+            examples:
+              fileUpload:
+                summary: File upload
+                value:
+                  metaPart:
+                    channelID: 550e8400-e29b-41d4-a716-446655440000
+                    caption: Quarterly report
+                    externalId: report-2026-q1
+                    compressImage: false
+                  filePart: (binary)
+      responses:
+        '200':
+          description: File message accepted (multipart upload)
+        '201':
+          description: Text message created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageCreateResponse'
+              example:
+                id: 660e8400-e29b-41d4-a716-446655440001
+                topicId: 550e8400-e29b-41d4-a716-446655440000
+                createdAt: 1699564800000
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v2/messages/{messageId}:
+    delete:
+      summary: Delete a message
+      description: >
+        Delete a message by ID. Only the bot that sent the message can delete
+        it.
+      operationId: deleteMessage
+      security:
+        - bearerAuth: []
+          hmacSignature: []
+        - oauth2ClientCredentials:
+            - message:write
+      tags:
+        - Messages
+      parameters:
+        - $ref: '#/components/parameters/XSignature'
+        - $ref: '#/components/parameters/XTimestamp'
+        - name: messageId
+          in: path
+          required: true
+          description: The message ID to delete
+          schema:
+            type: string
+            format: uuid
+          example: 660e8400-e29b-41d4-a716-446655440001
+      responses:
+        '204':
+          description: Message deleted successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    patch:
+      summary: Edit a message
+      description: >
+        Edit the text of a message. Only the bot that sent the message can edit
+        it, and the bot must still be a member of the channel.
+
+
+        Notes:
+
+        - `text` is required and cannot be empty
+
+        - Message length is limited to 10000 characters
+
+        - Edited messages will have an `Edited` property marker applied
+      operationId: patchMessage
+      security:
+        - bearerAuth: []
+          hmacSignature: []
+        - oauth2ClientCredentials:
+            - message:write
+      tags:
+        - Messages
+      parameters:
+        - $ref: '#/components/parameters/XSignature'
+        - $ref: '#/components/parameters/XTimestamp'
+        - name: messageId
+          in: path
+          required: true
+          description: The message ID to edit
+          schema:
+            type: string
+            format: uuid
+          example: 660e8400-e29b-41d4-a716-446655440001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MessagePatchRequest'
+            example:
+              text: Updated message content
+      responses:
+        '200':
+          description: Message updated successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v2/messages/{messageId}/reactions:
+    post:
+      summary: Add a reaction to a message
+      description: >
+        Add an emoji reaction to a message. The bot must be a member of the
+        channel.
+
+
+        This endpoint is idempotent per `{messageId, bot, reaction}`:
+
+        - Returns `201` when a new reaction is created
+
+        - Returns `200` when the same reaction already exists for this bot
+      operationId: addMessageReaction
+      security:
+        - bearerAuth: []
+          hmacSignature: []
+        - oauth2ClientCredentials:
+            - reaction:write
+      tags:
+        - Messages
+      parameters:
+        - $ref: '#/components/parameters/XSignature'
+        - $ref: '#/components/parameters/XTimestamp'
+        - name: messageId
+          in: path
+          required: true
+          description: The message ID to react to
+          schema:
+            type: string
+            format: uuid
+          example: 660e8400-e29b-41d4-a716-446655440001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MessageReactionCreateRequest'
+            example:
+              reaction: 👍
+      responses:
+        '200':
+          description: Reaction already existed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageReactionCreateResponse'
+        '201':
+          description: Reaction created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageReactionCreateResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v2/messages/{messageId}/reactions/{reactionId}:
+    delete:
+      summary: Remove a reaction from a message
+      description: >
+        Remove a reaction by ID. Only the bot that added the reaction can remove
+        it, and the bot must still be a member of the channel.
+
+
+        The `messageId` in the path must match the message the reaction belongs
+        to.
+      operationId: deleteMessageReaction
+      security:
+        - bearerAuth: []
+          hmacSignature: []
+        - oauth2ClientCredentials:
+            - reaction:write
+      tags:
+        - Messages
+      parameters:
+        - $ref: '#/components/parameters/XSignature'
+        - $ref: '#/components/parameters/XTimestamp'
+        - name: messageId
+          in: path
+          required: true
+          description: The message ID the reaction belongs to
+          schema:
+            type: string
+            format: uuid
+          example: 660e8400-e29b-41d4-a716-446655440001
+        - name: reactionId
+          in: path
+          required: true
+          description: The reaction ID to remove
+          schema:
+            type: string
+            format: uuid
+          example: 990e8400-e29b-41d4-a716-446655440005
+      responses:
+        '204':
+          description: Reaction removed successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v2/messages/{messageId}/delivered:
+    post:
+      summary: Mark a message as delivered
+      description: >
+        Mark a message as delivered by the current bot.
+
+
+        This endpoint is idempotent. If the message has not been fully persisted
+        yet,
+
+        delivery status is queued and applied when it becomes available.
+      operationId: markMessageDelivered
+      security:
+        - bearerAuth: []
+          hmacSignature: []
+        - oauth2ClientCredentials:
+            - message:write
+      tags:
+        - Messages
+      parameters:
+        - $ref: '#/components/parameters/XSignature'
+        - $ref: '#/components/parameters/XTimestamp'
+        - name: messageId
+          in: path
+          required: true
+          description: The message ID to mark as delivered
+          schema:
+            type: string
+            format: uuid
+          example: 660e8400-e29b-41d4-a716-446655440001
+      responses:
+        '200':
+          description: Message marked as delivered
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v2/messages/{messageId}/read:
+    post:
+      summary: Mark a message as read
+      description: >
+        Mark a message as read by the current bot.
+
+
+        This endpoint is idempotent. If the message has not been fully persisted
+        yet,
+
+        read status is queued and applied when it becomes available.
+      operationId: markMessageRead
+      security:
+        - bearerAuth: []
+          hmacSignature: []
+        - oauth2ClientCredentials:
+            - message:write
+      tags:
+        - Messages
+      parameters:
+        - $ref: '#/components/parameters/XSignature'
+        - $ref: '#/components/parameters/XTimestamp'
+        - name: messageId
+          in: path
+          required: true
+          description: The message ID to mark as read
+          schema:
+            type: string
+            format: uuid
+          example: 660e8400-e29b-41d4-a716-446655440001
+      responses:
+        '200':
+          description: Message marked as read
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v2/updates:
+    get:
+      summary: Get updates (long polling)
+      description: >
+        Retrieve outbound events for bots configured with **polling** delivery
+        mode.
+
+
+        Long polling behavior:
+
+        - If updates are available after `offset`, they are returned immediately
+
+        - If none are available and `timeout > 0`, the request waits up to
+        `timeout` seconds
+
+        - If still no updates, returns an empty list with `nextOffset`
+
+        - Returns `409` if delivery mode is not polling, or if `offset` is no
+        longer available
+
+
+        Message attachment payloads are included inline in polling events, the
+        same as webhooks:
+
+        `data.message.attachments[]` with signed download URLs (including audio
+        transcription metadata when available).
+
+
+        Use `nextOffset` from each response as `offset` in the next request.
+      operationId: getUpdates
+      security:
+        - bearerAuth: []
+          hmacSignature: []
+        - oauth2ClientCredentials:
+            - updates:read
+      tags:
+        - Long Polling
+      parameters:
+        - $ref: '#/components/parameters/XSignature'
+        - $ref: '#/components/parameters/XTimestamp'
+        - name: offset
+          in: query
+          required: false
+          description: >-
+            Opaque offset returned by a previous `nextOffset`. Omit on the first
+            request.
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          description: 'Maximum updates to return (default: 50, max: 100)'
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: timeout
+          in: query
+          required: false
+          description: 'Long polling timeout in seconds (default: 0, max: 30)'
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 30
+            default: 0
+      responses:
+        '200':
+          description: Updates retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdatesResponse'
+              example:
+                updates:
+                  - updateId: AAAAAAABAAAAAAAAAAABAA==
+                    eventType: message.created
+                    createdAt: 1699564800000
+                    data:
+                      message:
+                        id: 660e8400-e29b-41d4-a716-446655440001
+                        topicId: 550e8400-e29b-41d4-a716-446655440000
+                        senderId: 550e8400-e29b-41d4-a716-446655440001
+                        senderType: user
+                        senderName: Alice Johnson
+                        type: text
+                        text: Hello team!
+                        createdAt: 1699564800000
+                      truncated: false
+                nextOffset: AAAAAAABAAAAAAAAAAABAA==
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v2/topics:
+    get:
+      summary: List topics
+      description: >
+        Get a paginated list of all topics and direct messages where your API
+        key bot is a member.
+
+        Results are sorted by creation date (newest first).
+
+
+        Pagination:
+
+        - `limit`: default `50`, max `100`
+
+        - `cursor`: opaque cursor from the previous response (`nextCursor`)
+      operationId: listTopics
+      security:
+        - bearerAuth: []
+          hmacSignature: []
+        - oauth2ClientCredentials:
+            - channel:list
+      tags:
+        - Topics (group chats/channels/conversations)
+      parameters:
+        - $ref: '#/components/parameters/XSignature'
+        - $ref: '#/components/parameters/XTimestamp'
+        - name: limit
+          in: query
+          description: 'Maximum number of topics to return (default: 50, max: 100)'
+          required: false
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: cursor
+          in: query
+          description: Opaque cursor from a previous `nextCursor` value.
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Topics list retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TopicsListResponse'
+              example:
+                topics:
+                  - id: 550e8400-e29b-41d4-a716-446655440000
+                    name: Project Updates
+                    description: Discussion for project milestones
+                    type: topic
+                    properties: []
+                    members:
+                      - 550e8400-e29b-41d4-a716-446655440001
+                      - 550e8400-e29b-41d4-a716-446655440002
+                      - b@660e8400-e29b-41d4-a716-446655440003
+                    createdAt: 1699564800000
+                    updatedAt: 1699564800000
+                    externalId: project-alpha
+                  - id: 550e8400-e29b-41d4-a716-446655440010
+                    name: Company Announcements
+                    type: topic
+                    properties:
+                      - announcement
+                    members:
+                      - 550e8400-e29b-41d4-a716-446655440001
+                      - b@660e8400-e29b-41d4-a716-446655440003
+                    createdAt: 1699564900000
+                    updatedAt: 1699564900000
+                  - id: 550e8400-e29b-41d4-a716-446655440020
+                    name: John Doe
+                    type: dm
+                    properties: []
+                    members:
+                      - 550e8400-e29b-41d4-a716-446655440001
+                      - b@660e8400-e29b-41d4-a716-446655440003
+                    createdAt: 1699565000000
+                    updatedAt: 1699565000000
+                nextCursor: >-
+                  eyJ0IjoxNjk5NTY1MDAwMDAwLCJpZCI6IjU1MGU4NDAwLWUyOWItNDFkNC1hNzE2LTQ0NjY1NTQ0MDAyMCJ9.abc123
+                hasMore: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      summary: Create a topic
+      description: >
+        Create a new topic with specified members. Your API key bot will
+        automatically be added as a member.
+
+
+        Limits:
+
+        - topic name is limited to 64 characters
+
+        - topic description is limited to 10000 characters
+
+        - maximum 100 members per topic
+
+        - you can only add members that are already in your organization
+
+        - topic externalId is limited to 100 characters
+
+        - externalId must be unique per bot - you cannot create multiple topics
+        with the same externalId
+      operationId: createTopic
+      security:
+        - bearerAuth: []
+          hmacSignature: []
+        - oauth2ClientCredentials:
+            - channel:write
+      tags:
+        - Topics (group chats/channels/conversations)
+      parameters:
+        - $ref: '#/components/parameters/XSignature'
+        - $ref: '#/components/parameters/XTimestamp'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TopicCreateRequest'
+            examples:
+              basic:
+                summary: Basic topic
+                value:
+                  name: Project Updates
+                  members:
+                    - 550e8400-e29b-41d4-a716-446655440001
+                    - 550e8400-e29b-41d4-a716-446655440002
+              withDescription:
+                summary: Topic with description
+                value:
+                  name: Marketing Campaign
+                  description: Discussion for Q4 marketing campaign
+                  members:
+                    - 550e8400-e29b-41d4-a716-446655440001
+                    - 550e8400-e29b-41d4-a716-446655440002
+                    - 550e8400-e29b-41d4-a716-446655440003
+                  externalId: campaign-q4-2024
+      responses:
+        '201':
+          description: Topic created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TopicCreateResponse'
+              example:
+                id: 770e8400-e29b-41d4-a716-446655440002
+                name: Project Updates
+                members:
+                  - 550e8400-e29b-41d4-a716-446655440001
+                  - 550e8400-e29b-41d4-a716-446655440002
+                  - b@660e8400-e29b-41d4-a716-446655440003
+                externalId: b@660e8400-e29b-41d4-a716-446655440003:campaign-q4-2024
+                createdAt: 1699564800000
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v2/topics/external/{externalId}:
+    get:
+      summary: Get topic by external ID
+      description: >
+        Get details of a specific topic by its external ID (set when creating
+        the topic).
+
+
+        **Authorization:** Your API key bot must be a member of the topic to
+        access its details.
+
+
+        **Note:** For security reasons, a 404 response is returned both when the
+        topic does not exist
+
+        and when your bot is not a member of the topic.
+
+
+        ## Deep linking to topics
+
+
+        You can open Zenzap directly to a topic using its external ID by adding
+        a query parameter to the Zenzap app URL.
+
+
+        | Component | Value |
+
+        |-----------|-------|
+
+        | Base URL | **https://app.zenzap.co** |
+
+        | Query parameter | **external_topic** |
+
+        | Parameter value | Your external ID |
+
+
+        For example, use **https://app.zenzap.co?external_topic=project-123** to
+        link directly to a topic with external ID "project-123".
+
+
+        This is useful for creating links from your application that navigate
+        users directly to the relevant conversation in Zenzap.
+
+
+        ### Short vs fully qualified external ID
+
+
+        You can use either the **short external ID** (the value you passed when
+        creating the topic) or the **fully qualified external ID**.
+
+
+        For security purposes, if multiple bots create topics with the same
+        external ID, each topic is internally prefixed with the bot ID in the
+        format **bot_id:external_id**. The bot ID follows the format `b@<uuid>`
+        (e.g., `b@660e8400-e29b-41d4-a716-446655440003`). To avoid ambiguity,
+        use the fully qualified format like
+        **https://app.zenzap.co?external_topic=b@660e8400-e29b-41d4-a716-446655440003:project-123**.
+
+
+        | Format | Example URL |
+
+        |--------|-------------|
+
+        | Short | **https://app.zenzap.co?external_topic=project-123** |
+
+        | Fully qualified |
+        **https://app.zenzap.co?external_topic=b@660e8400-e29b-41d4-a716-446655440003:project-123**
+        |
+
+
+        ### Multiple matches
+
+
+        If you use the short external ID and multiple bots have created topics
+        with the same external ID, the user will see a selection screen to
+        choose the correct topic:
+
+
+        ![Topic selection screen](/images/topic_selection.jpg)
+
+
+        ### Platform availability
+
+
+        Deep linking is currently supported on **Web** and **Windows** versions
+        of Zenzap.
+      operationId: getTopicByExternalId
+      security:
+        - bearerAuth: []
+          hmacSignature: []
+        - oauth2ClientCredentials:
+            - channel:read
+      tags:
+        - Topics (group chats/channels/conversations)
+      parameters:
+        - $ref: '#/components/parameters/XSignature'
+        - $ref: '#/components/parameters/XTimestamp'
+        - name: externalId
+          in: path
+          required: true
+          description: The external ID of the topic to retrieve
+          schema:
+            type: string
+            maxLength: 100
+          example: project-alpha
+      responses:
+        '200':
+          description: Topic details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TopicGetResponse'
+              example:
+                id: 550e8400-e29b-41d4-a716-446655440000
+                name: Project Updates
+                description: Discussion for project milestones
+                memberIds:
+                  - 550e8400-e29b-41d4-a716-446655440001
+                  - 550e8400-e29b-41d4-a716-446655440002
+                  - b@660e8400-e29b-41d4-a716-446655440003
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v2/topics/{topicId}:
+    get:
+      summary: Get topic details
+      description: >
+        Get details of a specific topic including its name, description, and
+        member IDs.
+
+
+        **Authorization:** Your API key bot must be a member of the topic to
+        access its details.
+
+
+        **Note:** For security reasons, a 404 response is returned both when the
+        topic does not exist
+
+        and when your bot is not a member of the topic.
+      operationId: getTopic
+      security:
+        - bearerAuth: []
+          hmacSignature: []
+        - oauth2ClientCredentials:
+            - channel:read
+      tags:
+        - Topics (group chats/channels/conversations)
+      parameters:
+        - $ref: '#/components/parameters/XSignature'
+        - $ref: '#/components/parameters/XTimestamp'
+        - name: topicId
+          in: path
+          required: true
+          description: The ID of the topic to retrieve
+          schema:
+            type: string
+            format: uuid
+          example: 550e8400-e29b-41d4-a716-446655440000
+      responses:
+        '200':
+          description: Topic details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TopicGetResponse'
+              example:
+                id: 550e8400-e29b-41d4-a716-446655440000
+                name: Project Updates
+                description: Discussion for project milestones
+                memberIds:
+                  - 550e8400-e29b-41d4-a716-446655440001
+                  - 550e8400-e29b-41d4-a716-446655440002
+                  - b@660e8400-e29b-41d4-a716-446655440003
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    patch:
+      summary: Update a topic
+      description: >
+        Update the name and/or description of a topic.
+
+
+        **Authorization:** Your API key bot must be a member of the topic to
+        update it.
+
+
+        **Validation:** At least one of `name` or `description` must be
+        provided.
+
+
+        **Note:** For security reasons, a 404 response is returned both when the
+        topic does not exist
+
+        and when your bot is not a member of the topic.
+
+
+        Limits:
+
+        - topic name is limited to 64 characters
+
+        - topic description is limited to 10000 characters
+      operationId: updateTopic
+      security:
+        - bearerAuth: []
+          hmacSignature: []
+        - oauth2ClientCredentials:
+            - channel:write
+      tags:
+        - Topics (group chats/channels/conversations)
+      parameters:
+        - $ref: '#/components/parameters/XSignature'
+        - $ref: '#/components/parameters/XTimestamp'
+        - name: topicId
+          in: path
+          required: true
+          description: The ID of the topic to update
+          schema:
+            type: string
+            format: uuid
+          example: 550e8400-e29b-41d4-a716-446655440000
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TopicPatchRequest'
+            examples:
+              updateName:
+                summary: Update topic name
+                value:
+                  name: New Project Name
+              updateDescription:
+                summary: Update topic description
+                value:
+                  description: Updated description for the project
+              updateBoth:
+                summary: Update both name and description
+                value:
+                  name: Renamed Project
+                  description: New description for the renamed project
+      responses:
+        '200':
+          description: Topic updated successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v2/topics/{topicId}/messages:
+    get:
+      summary: Get topic messages
+      description: >
+        Get messages from a topic with cursor-based pagination. Messages are
+        returned in the specified order.
+
+
+        **Authorization:** Your API key bot must be a member of the topic to
+        access its messages.
+
+
+        **Pagination:** Use the `cursor` parameter with the value from
+        `nextCursor` in the response to get the next page.
+
+        The `before` and `after` parameters are mutually exclusive - use one or
+        the other, not both.
+
+
+        **Note:** For security reasons, a 404 response is returned both when the
+        topic does not exist
+
+        and when your bot is not a member of the topic.
+      operationId: getTopicMessages
+      security:
+        - bearerAuth: []
+          hmacSignature: []
+        - oauth2ClientCredentials:
+            - message:read
+      tags:
+        - Topics (group chats/channels/conversations)
+      parameters:
+        - $ref: '#/components/parameters/XSignature'
+        - $ref: '#/components/parameters/XTimestamp'
+        - name: topicId
+          in: path
+          required: true
+          description: The ID of the topic to get messages from
+          schema:
+            type: string
+            format: uuid
+          example: 550e8400-e29b-41d4-a716-446655440000
+        - name: limit
+          in: query
+          description: 'Maximum number of messages to return (default: 50, max: 100)'
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: cursor
+          in: query
+          description: >-
+            Opaque cursor for pagination. Use the value from `nextCursor` in the
+            response. Cursors are cryptographically signed and validated
+            server-side to prevent tampering.
+          required: false
+          schema:
+            type: string
+        - name: before
+          in: query
+          description: >-
+            Return messages created before this timestamp (Unix milliseconds).
+            Mutually exclusive with `after`.
+          required: false
+          schema:
+            type: integer
+            format: int64
+        - name: after
+          in: query
+          description: >-
+            Return messages created after this timestamp (Unix milliseconds).
+            Mutually exclusive with `before`.
+          required: false
+          schema:
+            type: integer
+            format: int64
+        - name: senderId
+          in: query
+          description: Filter messages by sender ID
+          required: false
+          schema:
+            type: string
+        - name: order
+          in: query
+          description: 'Sort order for messages (default: desc - newest first)'
+          required: false
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
+            default: desc
+        - name: includeSystem
+          in: query
+          description: 'Include system messages (default: true)'
+          required: false
+          schema:
+            type: boolean
+            default: true
+        - name: threadId
+          in: query
+          description: >-
+            Filter to messages within a specific thread (replies to a parent
+            message)
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: includeReactionUsers
+          in: query
+          description: 'Include user IDs in reaction data (default: false, heavier payload)'
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Messages retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TopicMessagesResponse'
+              example:
+                messages:
+                  - id: 660e8400-e29b-41d4-a716-446655440001
+                    topicId: 550e8400-e29b-41d4-a716-446655440000
+                    senderId: 550e8400-e29b-41d4-a716-446655440001
+                    senderName: Alice Johnson
+                    senderType: user
+                    text: Hello team!
+                    createdAt: 1699564800000
+                    updatedAt: 1699564800000
+                    isEdited: false
+                    isSystem: false
+                    attachments: []
+                    mentions: []
+                    reactions: []
+                  - id: 660e8400-e29b-41d4-a716-446655440002
+                    topicId: 550e8400-e29b-41d4-a716-446655440000
+                    senderId: b@660e8400-e29b-41d4-a716-446655440003
+                    senderName: API Bot
+                    senderType: bot
+                    text: Task created successfully
+                    createdAt: 1699564700000
+                    updatedAt: 1699564700000
+                    isEdited: false
+                    isSystem: false
+                    attachments: []
+                    mentions: []
+                    reactions: []
+                nextCursor: >-
+                  eyJ0IjoxNjk5NTY0NzAwMDAwLCJpZCI6IjY2MGU4NDAwLWUyOWItNDFkNC1hNzE2LTQ0NjY1NTQ0MDAwMiIsIm8iOiJkZXNjIn0=
+                hasMore: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v2/topics/{topicId}/members:
+    post:
+      summary: Add members to a topic
+      description: >
+        Add one or more members to an existing topic.
+
+
+        **Authorization:** Your API key bot must be a member of the topic
+        (returns 404 if not).
+
+
+        **Validation:**
+
+        - All members being added must exist and be from the same organization
+        as the bot (returns 400 "Invalid member" if not)
+
+        - Members already in the topic will result in a 400 error
+
+
+        **Limits:** Maximum 5 members per request. Duplicate member IDs in the
+        request are automatically removed. For adding many members, create the
+        topic with all members upfront.
+      operationId: addTopicMembers
+      security:
+        - bearerAuth: []
+          hmacSignature: []
+        - oauth2ClientCredentials:
+            - channel:write
+      tags:
+        - Topics (group chats/channels/conversations)
+      parameters:
+        - $ref: '#/components/parameters/XSignature'
+        - $ref: '#/components/parameters/XTimestamp'
+        - name: topicId
+          in: path
+          required: true
+          description: The ID of the topic to add members to
+          schema:
+            type: string
+            format: uuid
+          example: 550e8400-e29b-41d4-a716-446655440000
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TopicMemberAddRequest'
+            examples:
+              single:
+                summary: Add a single member
+                value:
+                  memberIds:
+                    - 550e8400-e29b-41d4-a716-446655440003
+              multiple:
+                summary: Add multiple members
+                value:
+                  memberIds:
+                    - 550e8400-e29b-41d4-a716-446655440003
+                    - 550e8400-e29b-41d4-a716-446655440004
+                    - 550e8400-e29b-41d4-a716-446655440005
+      responses:
+        '200':
+          description: Members added successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TopicMemberUpdateResponse'
+              example:
+                id: 550e8400-e29b-41d4-a716-446655440000
+                memberIds:
+                  - 550e8400-e29b-41d4-a716-446655440001
+                  - 550e8400-e29b-41d4-a716-446655440002
+                  - 550e8400-e29b-41d4-a716-446655440003
+                  - b@660e8400-e29b-41d4-a716-446655440003
+                updatedAt: 1699564800000
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      summary: Remove members from a topic
+      description: >
+        Remove one or more members from an existing topic.
+
+
+        **Authorization:** Your API key bot must be a member of the topic
+        (returns 404 if not).
+
+
+        **Behavior:** Members not currently in the topic are silently ignored.
+        If none of the provided members are in the topic, no removal occurs and
+        the current topic state is returned.
+
+
+        **Limits:** Maximum 5 members per request. Duplicate member IDs are
+        automatically removed.
+
+
+        **Note:** The bot can remove itself from the topic if needed.
+      operationId: removeTopicMembers
+      security:
+        - bearerAuth: []
+          hmacSignature: []
+        - oauth2ClientCredentials:
+            - channel:write
+      tags:
+        - Topics (group chats/channels/conversations)
+      parameters:
+        - $ref: '#/components/parameters/XSignature'
+        - $ref: '#/components/parameters/XTimestamp'
+        - name: topicId
+          in: path
+          required: true
+          description: The ID of the topic to remove members from
+          schema:
+            type: string
+            format: uuid
+          example: 550e8400-e29b-41d4-a716-446655440000
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TopicMemberRemoveRequest'
+            examples:
+              single:
+                summary: Remove a single member
+                value:
+                  memberIds:
+                    - 550e8400-e29b-41d4-a716-446655440003
+              multiple:
+                summary: Remove multiple members
+                value:
+                  memberIds:
+                    - 550e8400-e29b-41d4-a716-446655440003
+                    - 550e8400-e29b-41d4-a716-446655440004
+      responses:
+        '200':
+          description: Members removed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TopicMemberUpdateResponse'
+              example:
+                id: 550e8400-e29b-41d4-a716-446655440000
+                memberIds:
+                  - 550e8400-e29b-41d4-a716-446655440001
+                  - b@660e8400-e29b-41d4-a716-446655440003
+                updatedAt: 1699564800000
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v2/tasks:
+    get:
+      summary: List tasks
+      description: >
+        List tasks visible to your bot.
+
+
+        Optional filters:
+
+        - `topicId`: only tasks from a specific topic
+
+        - `status`: `Open` or `Done`
+
+        - `assignee`: profile ID of assignee (pass empty string to filter
+        unassigned tasks)
+
+
+        Pagination:
+
+        - `limit`: default `50`, max `100`
+
+        - `cursor`: opaque cursor from the previous response (`nextCursor`)
+      operationId: listTasks
+      security:
+        - bearerAuth: []
+          hmacSignature: []
+        - oauth2ClientCredentials:
+            - task:read
+      tags:
+        - Tasks
+      parameters:
+        - $ref: '#/components/parameters/XSignature'
+        - $ref: '#/components/parameters/XTimestamp'
+        - name: topicId
+          in: query
+          required: false
+          description: Filter tasks by topic ID
+          schema:
+            type: string
+            format: uuid
+          example: 550e8400-e29b-41d4-a716-446655440000
+        - name: status
+          in: query
+          required: false
+          description: Filter by task status
+          schema:
+            type: string
+            enum:
+              - Open
+              - Done
+          example: Open
+        - name: assignee
+          in: query
+          required: false
+          description: Filter by assignee profile ID (empty value filters unassigned tasks)
+          schema:
+            type: string
+          example: 550e8400-e29b-41d4-a716-446655440001
+        - name: limit
+          in: query
+          required: false
+          description: Maximum tasks to return (default 50, max 100)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: cursor
+          in: query
+          required: false
+          description: Opaque cursor from a previous `nextCursor` value.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Tasks retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      summary: Create a task
+      description: >
+        Create a task in a topic. Tasks can be assigned to specific users and
+        have due dates.
+
+
+        Limits:
+
+        - task title is limited to 256 characters
+
+        - task description is limited to 10000 characters
+
+        - you can only assign tasks to members that are already in your topic
+
+        - task due date must be a valid Unix timestamp in milliseconds (e.g.,
+        1699564800000)
+
+        - task externalId is limited to 100 characters
+      operationId: createTask
+      security:
+        - bearerAuth: []
+          hmacSignature: []
+        - oauth2ClientCredentials:
+            - task:write
+      tags:
+        - Tasks
+      parameters:
+        - $ref: '#/components/parameters/XSignature'
+        - $ref: '#/components/parameters/XTimestamp'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskCreateRequest'
+            examples:
+              basic:
+                summary: Basic task
+                value:
+                  topicId: 550e8400-e29b-41d4-a716-446655440000
+                  title: Review documentation
+              withAssignee:
+                summary: Assigned task with due date
+                value:
+                  topicId: 550e8400-e29b-41d4-a716-446655440000
+                  title: Complete quarterly review
+                  description: Review all metrics and prepare report
+                  assignee: 550e8400-e29b-41d4-a716-446655440001
+                  dueDate: 1699564800000
+                  externalId: jira-PROJ-123
+      responses:
+        '201':
+          description: Task created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskCreateResponse'
+              example:
+                id: 880e8400-e29b-41d4-a716-446655440003
+                topicId: 550e8400-e29b-41d4-a716-446655440000
+                title: Review documentation
+                createdAt: 1699564800000
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v2/tasks/{taskId}:
+    get:
+      summary: Get task details
+      description: Get a single task by ID.
+      operationId: getTask
+      security:
+        - bearerAuth: []
+          hmacSignature: []
+        - oauth2ClientCredentials:
+            - task:read
+      tags:
+        - Tasks
+      parameters:
+        - $ref: '#/components/parameters/XSignature'
+        - $ref: '#/components/parameters/XTimestamp'
+        - name: taskId
+          in: path
+          required: true
+          description: The task ID
+          schema:
+            type: string
+            format: uuid
+          example: 880e8400-e29b-41d4-a716-446655440003
+      responses:
+        '200':
+          description: Task retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    patch:
+      summary: Update a task
+      description: |
+        Update task fields. This endpoint supports partial updates.
+
+        Updatable fields:
+        - `name` (alias of `title`)
+        - `description`
+        - `assignee`
+        - `dueDate`
+        - `status` (`Open` or `Done`)
+
+        Notes:
+        - Provide either `name` or `title` (not both)
+        - Setting `assignee` to an empty string unassigns the task
+        - Setting `dueDate` to `0` clears the due date
+        - When status is set to `Done`, the task is marked as closed
+        - When `status` is provided, `topicId` is required
+        - Every successful update creates a task system message in the topic
+      operationId: patchTask
+      security:
+        - bearerAuth: []
+          hmacSignature: []
+        - oauth2ClientCredentials:
+            - task:write
+      tags:
+        - Tasks
+      parameters:
+        - $ref: '#/components/parameters/XSignature'
+        - $ref: '#/components/parameters/XTimestamp'
+        - name: taskId
+          in: path
+          required: true
+          description: The task ID to update
+          schema:
+            type: string
+            format: uuid
+          example: 880e8400-e29b-41d4-a716-446655440003
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskPatchRequest'
+            examples:
+              completeTask:
+                summary: Mark task as done
+                value:
+                  topicId: 550e8400-e29b-41d4-a716-446655440000
+                  status: Done
+              renameAndReassign:
+                summary: Rename and reassign task
+                value:
+                  name: Review webhook integration docs
+                  assignee: 550e8400-e29b-41d4-a716-446655440001
+                  description: Update docs with long polling + multipart examples
+              updateDueDate:
+                summary: Set due date
+                value:
+                  dueDate: 1699564800000
+      responses:
+        '200':
+          description: Task updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskPatchResponse'
+              example:
+                id: 880e8400-e29b-41d4-a716-446655440003
+                updatedAt: 1699564800000
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      summary: Delete a task
+      description: |
+        Delete a task by ID.
+      operationId: deleteTask
+      security:
+        - bearerAuth: []
+          hmacSignature: []
+        - oauth2ClientCredentials:
+            - task:write
+      tags:
+        - Tasks
+      parameters:
+        - $ref: '#/components/parameters/XSignature'
+        - $ref: '#/components/parameters/XTimestamp'
+        - name: taskId
+          in: path
+          required: true
+          description: The task ID to delete
+          schema:
+            type: string
+            format: uuid
+          example: 880e8400-e29b-41d4-a716-446655440003
+      responses:
+        '204':
+          description: Task deleted successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v2/members:
+    get:
+      summary: List members
+      description: >
+        Get a paginated list of all members in your organization. Only returns
+        active members.
+
+
+        Pagination:
+
+        - `limit`: default `50`, max `100`
+
+        - `cursor`: opaque cursor from the previous response (`nextCursor`)
+      operationId: listMembers
+      security:
+        - bearerAuth: []
+          hmacSignature: []
+        - oauth2ClientCredentials:
+            - member:read
+      tags:
+        - Members
+      parameters:
+        - $ref: '#/components/parameters/XSignature'
+        - $ref: '#/components/parameters/XTimestamp'
+        - name: limit
+          in: query
+          description: 'Maximum number of members to return (default: 50, max: 100)'
+          required: false
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: cursor
+          in: query
+          description: Opaque cursor from a previous `nextCursor` value.
+          required: false
+          schema:
+            type: string
+        - name: emails
+          in: query
+          description: >-
+            Comma-separated list of email addresses to filter members (e.g.,
+            john@example.com,jane@example.com)
+          required: false
+          schema:
+            type: string
+          example: john@example.com,jane@example.com
+      responses:
+        '200':
+          description: Members list retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MembersListResponse'
+              example:
+                members:
+                  - id: 550e8400-e29b-41d4-a716-446655440001
+                    name: John Doe
+                    email: john@example.com
+                    phone: '+1234567890'
+                    externalId: emp-001
+                    createdAt: 1699564800000
+                    updatedAt: 1699564800000
+                    status: Active
+                  - id: 550e8400-e29b-41d4-a716-446655440002
+                    name: Jane Smith
+                    email: jane@example.com
+                    phone: '+1234567891'
+                    createdAt: 1699564800000
+                    updatedAt: 1699564800000
+                    status: Active
+                nextCursor: >-
+                  eyJ0IjoxNjk5NTY0ODAwMDAwLCJpZCI6InVANTUwZTg0MDAtZTI5Yi00MWQ0LWE3MTYtNDQ2NjU1NDQwMDAyIn0.abc123
+                hasMore: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v2/members/me:
+    get:
+      summary: Get current member
+      description: >
+        Get information about the member associated with the current API key
+        (the bot itself).
+      operationId: getCurrentMember
+      security:
+        - bearerAuth: []
+          hmacSignature: []
+        - oauth2ClientCredentials:
+            - member:read
+      tags:
+        - Members
+      parameters:
+        - $ref: '#/components/parameters/XSignature'
+        - $ref: '#/components/parameters/XTimestamp'
+      responses:
+        '200':
+          description: Member information retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberResponse'
+              example:
+                id: b@660e8400-e29b-41d4-a716-446655440003
+                name: API Bot
+                email: bot@example.com
+                phone: ''
+                createdAt: 1699564800000
+                updatedAt: 1699564800000
+                status: Active
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v2/polls:
+    post:
+      summary: Create a poll
+      description: >
+        Create a poll in a topic. The bot must be a member of the topic.
+
+
+        Polls are sent as messages. Each option text is stored server-side with
+        a
+
+        server-generated 6-character ID — use those IDs when submitting votes.
+
+
+        **Anonymous polls** (`anonymous: true`) do not support voting via the
+        API.
+      operationId: createPoll
+      security:
+        - bearerAuth: []
+          hmacSignature: []
+        - oauth2ClientCredentials:
+            - poll:write
+      tags:
+        - Polls
+      parameters:
+        - $ref: '#/components/parameters/XSignature'
+        - $ref: '#/components/parameters/XTimestamp'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PollCreateRequest'
+            example:
+              topicId: 550e8400-e29b-41d4-a716-446655440000
+              question: Which release should we prioritize?
+              options:
+                - Bug fixes
+                - New features
+                - Performance improvements
+              selectionType: single
+      responses:
+        '201':
+          description: >-
+            Poll created successfully. The `id` field is the poll ID — use it as
+            `{pollId}` when calling `POST /v2/polls/{pollId}/votes`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollCreateResponse'
+              example:
+                id: 770e8400-e29b-41d4-a716-446655440099
+                topicId: 550e8400-e29b-41d4-a716-446655440000
+                question: Which release should we prioritize?
+                options:
+                  - id: a1b2c3
+                    text: Bug fixes
+                  - id: d4e5f6
+                    text: New features
+                  - id: g7h8i9
+                    text: Performance improvements
+                selectionType: single
+                status: active
+                createdAt: 1699564800000
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+              examples:
+                topicIdRequired:
+                  summary: Missing topicId
+                  value:
+                    message: topicId is required
+                questionRequired:
+                  summary: Missing question
+                  value:
+                    message: question is required
+                questionTooLong:
+                  summary: Question too long
+                  value:
+                    message: question too long
+                invalidSelectionType:
+                  summary: Invalid selectionType
+                  value:
+                    message: selectionType must be "single" or "multiple"
+                tooFewOptions:
+                  summary: Too few options
+                  value:
+                    message: at least 2 options are required
+                tooManyOptions:
+                  summary: Too many options
+                  value:
+                    message: too many options
+                emptyOption:
+                  summary: Empty option text
+                  value:
+                    message: option text cannot be empty
+                optionTooLong:
+                  summary: Option text too long
+                  value:
+                    message: option text too long
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Bot is not a member of the topic
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+              example:
+                message: active profile is not a member of topic
+        '404':
+          description: Topic not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+              example:
+                message: topic not found
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v2/polls/{pollId}/votes:
+    post:
+      summary: Vote on a poll
+      description: >
+        Submit a vote on a poll on behalf of the bot. The bot must be a member
+        of the topic the poll was posted in.
+
+
+        Use the `id` values from the `options` array in the `POST /v2/polls`
+        response as the `optionId`.
+
+
+        **Constraints:**
+
+        - Anonymous polls do not support voting via the API
+
+        - Votes cannot be cast on closed or expired polls
+
+        - Each `{pollId, optionId, voter}` combination is idempotent —
+        re-submitting the same vote is a no-op
+      operationId: createPollVote
+      security:
+        - bearerAuth: []
+          hmacSignature: []
+        - oauth2ClientCredentials:
+            - poll:write
+      tags:
+        - Polls
+      parameters:
+        - $ref: '#/components/parameters/XSignature'
+        - $ref: '#/components/parameters/XTimestamp'
+        - name: pollId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: The poll ID (returned as `id` in the create poll response)
+          example: 770e8400-e29b-41d4-a716-446655440099
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PollVoteCreateRequest'
+            example:
+              optionId: a1b2c3
+      responses:
+        '201':
+          description: Vote recorded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollVoteCreateResponse'
+              example:
+                id: >-
+                  770e8400-e29b-41d4-a716-446655440099_a1b2c3_b@f951b968-bf80-4ee6-bbbe-6ca338f57fc6
+                attachmentId: 770e8400-e29b-41d4-a716-446655440099
+                optionId: a1b2c3
+                createdAt: 1699564800000
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+              examples:
+                invalidAttachmentId:
+                  summary: Invalid attachment ID format
+                  value:
+                    message: invalid attachmentId
+                invalidOptionId:
+                  summary: Invalid option ID
+                  value:
+                    message: optionId must be non-empty and at most 6 characters
+                notAPoll:
+                  summary: Attachment is not a poll
+                  value:
+                    message: attachment is not a poll
+                anonymousPoll:
+                  summary: Anonymous poll — voting not supported
+                  value:
+                    message: anonymous polls are not supported
+                pollClosed:
+                  summary: Poll is closed
+                  value:
+                    message: poll is closed
+                pollExpired:
+                  summary: Poll has expired
+                  value:
+                    message: poll has expired
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Bot is not a member of the topic
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+              example:
+                message: active profile is not a member of topic
+        '404':
+          description: Poll not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+              example:
+                message: poll not found
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v2/polls/{pollId}/votes/{voteId}:
+    delete:
+      summary: Delete a poll vote
+      description: >
+        Retract a previously cast vote on a poll. Provide the poll ID and the
+        vote ID returned when the vote was cast.
+      operationId: deletePollVote
+      security:
+        - bearerAuth: []
+          hmacSignature: []
+        - oauth2ClientCredentials:
+            - poll:write
+      tags:
+        - Polls
+      parameters:
+        - $ref: '#/components/parameters/XSignature'
+        - $ref: '#/components/parameters/XTimestamp'
+        - name: pollId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: The poll ID (returned as `id` in the create poll response)
+          example: 770e8400-e29b-41d4-a716-446655440099
+        - name: voteId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The vote ID (returned as `id` in the create vote response)
+          example: >-
+            770e8400-e29b-41d4-a716-446655440099_a1b2c3_b@f951b968-bf80-4ee6-bbbe-6ca338f57fc6
+      responses:
+        '204':
+          description: Vote deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Vote not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+              example:
+                message: vote not found
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /oauth/token:
+    post:
+      summary: Issue an OAuth access token
+      description: >
+        Exchanges OAuth client credentials for a short-lived bearer access
+        token.
+
+
+        Only the **`client_credentials`** grant is supported on this endpoint.
+        Use the `clientId` and `clientSecret` returned when the bot was created
+        (or rotated) in your Zenzap admin console.
+
+
+        **Client authentication**: either send `client_id` + `client_secret` in
+        the form body, or use HTTP Basic Auth with the same values
+        (`Authorization: Basic base64(clientId:clientSecret)`).
+
+
+        **Scopes**: omit the `scope` field to receive a token with all scopes
+        configured on the bot, or pass a space-separated subset to down-scope.
+        Requesting a scope that the bot was not granted at creation will fail.
+
+
+        **Token lifetime**: 1 hour. There is **no refresh token** — re-mint with
+        the client credentials when the token expires.
+
+
+        Tokens are JWTs bound to the issuing region and to the bot. They are
+        validated on every request. See
+        [Authentication](/api-reference/authentication) for the full reference.
+      operationId: issueOAuthToken
+      tags:
+        - OAuth
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/OAuthTokenRequest'
+            examples:
+              clientCredentialsBody:
+                summary: Credentials in form body
+                value:
+                  grant_type: client_credentials
+                  client_id: b@660e8400-e29b-41d4-a716-446655440003
+                  client_secret: very-long-random-secret
+              withScope:
+                summary: Down-scoped request
+                value:
+                  grant_type: client_credentials
+                  client_id: b@660e8400-e29b-41d4-a716-446655440003
+                  client_secret: very-long-random-secret
+                  scope: channel:list message:send
+              basicAuth:
+                summary: >-
+                  Credentials via HTTP Basic (omit client_id / client_secret in
+                  body)
+                value:
+                  grant_type: client_credentials
+      responses:
+        '200':
+          description: Access token issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OAuthTokenResponse'
+              example:
+                access_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                token_type: Bearer
+                expires_in: 3600
+                scope: channel:list message:send
+        '400':
+          description: >-
+            Invalid request (missing parameters, unsupported grant type, or
+            requested scopes not allowed for the client)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OAuthErrorResponse'
+              examples:
+                unsupportedGrant:
+                  summary: Unsupported grant type
+                  value:
+                    error: unsupported_grant_type
+                    error_description: unsupported grant_type
+                invalidGrant:
+                  summary: Invalid client credentials or scope
+                  value:
+                    error: invalid_grant
+                    error_description: invalid client credentials or scopes
+        '401':
+          description: Client authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OAuthErrorResponse'
+              example:
+                error: invalid_client
+                error_description: missing client_secret
+  /v2/agentic/organization/create:
+    post:
+      summary: Create organization
+      description: >
+        Allows an external AI agent to programmatically create a Zenzap
+        organization,
+
+        install a bot (the agent itself), and invite a human user — all in a
+        single request.
+
+
+        **Authentication:** None required. This endpoint is publicly accessible.
+
+
+        **Rate limit:** 1 request per minute per IP.
+
+
+        Supports two content types:
+
+        - `application/json` — for requests without a logo
+
+        - `multipart/form-data` — for requests that include a company logo
+        (`filePart`)
+
+
+        Once you receive the `201` response, use the returned `credentials` to
+        authenticate
+
+        all subsequent API calls. See
+        [Authentication](/api-reference/authentication) for details.
+      operationId: createAgenticOrganization
+      tags:
+        - Agentic
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgenticOrganizationCreateRequest'
+            example:
+              companyName: Acme Corp
+              humanEmail: founder@acme.com
+              companySize: 50
+              industry: Software
+              botName: Acme Assistant
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                filePart:
+                  type: string
+                  format: binary
+                  description: Company logo image. Max 5 MB. Optional.
+                metadata:
+                  $ref: '#/components/schemas/AgenticOrganizationCreateRequest'
+            encoding:
+              metadata:
+                contentType: application/json
+      responses:
+        '201':
+          description: Organization created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgenticOrganizationCreateResponse'
+              example:
+                organizationId: 067d0b2f-1ee8-49f2-bb09-e2d964c8cf6b
+                botProfileId: b@f951b968-bf80-4ee6-bbbe-6ca338f57fc6
+                channelId: 1b383aef-15c2-44e2-b599-d1d40a8b286c
+                humanProfileId: a3c2e1d0-9f8b-4e7a-b6c5-d4e3f2a1b0c9
+                credentials:
+                  - label: API Key
+                    value: utxDAedgfFXglaLX
+                  - label: API Secret
+                    value: 66AybzV7s0afLeKKqpxC7wLKCTk5d7bT
+                  - label: Control Topic ID
+                    value: 1b383aef-15c2-44e2-b599-d1d40a8b286c
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+              examples:
+                companyNameRequired:
+                  summary: Missing company name
+                  value:
+                    message: companyName is required
+                companyNameTooLong:
+                  summary: Company name too long
+                  value:
+                    message: companyName exceeds max length
+                invalidEmail:
+                  summary: Invalid email
+                  value:
+                    message: invalid humanEmail
+                invalidCompanySize:
+                  summary: Invalid company size
+                  value:
+                    message: companySize must be a positive integer
+                industryRequired:
+                  summary: Missing industry
+                  value:
+                    message: industry is required
+                botNameRequired:
+                  summary: Missing bot name
+                  value:
+                    message: botName is required
+                unableToCreate:
+                  summary: Conflict (email or domain already in use)
+                  value:
+                    message: Unable to create organization
+        '429':
+          description: Rate limit exceeded (1 request per minute per IP)
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: >
+        Bearer token for the request. Two flavors:
+
+
+        - **Static API key** — pass your API key (the value returned as `apiKey`
+        when the bot was created). Must be paired with `X-Signature` +
+        `X-Timestamp` (the `hmacSignature` scheme).
+
+        - **OAuth access token** — pass the JWT returned by `POST /oauth/token`.
+        No signature headers are required.
+    hmacSignature:
+      type: apiKey
+      in: header
+      name: X-Signature
+      description: >
+        HMAC-SHA256 signature for request verification. Required **only** when
+        authenticating with a static API key. Omit when using an OAuth access
+        token.
+    oauth2ClientCredentials:
+      type: oauth2
+      description: >
+        OAuth 2.0 `client_credentials` grant for API-key bots. Use the
+        `clientId` and `clientSecret` returned when the bot was created (or
+        rotated) to mint short-lived access tokens. See
+        [Authentication](/api-reference/authentication) for details.
+
+
+        Access tokens are bearer JWTs and expire after 1 hour. There is no
+        refresh token — re-mint with the client credentials when the token
+        expires.
+      flows:
+        clientCredentials:
+          tokenUrl: https://api.zenzap.co/oauth/token
+          scopes:
+            channel:list: List topics the bot belongs to
+            channel:read: Read topic metadata
+            channel:write: Create/update topics and manage members
+            message:read: Read messages
+            message:send: Send messages
+            message:write: Edit / delete / mark-delivered / mark-read messages
+            reaction:write: Add and remove reactions on messages
+            task:read: Read tasks
+            task:write: Create / update / delete tasks
+            poll:write: Create polls and cast / retract votes
+            member:read: List organization members
+            updates:read: Long-poll for outbound events
+  parameters:
+    XSignature:
+      name: X-Signature
+      in: header
+      required: false
+      description: >
+        HMAC signature of the request for authentication and replay protection.
+
+
+        **Required only when authenticating with a static API key.** If you are
+        using an OAuth access token (issued by `POST /oauth/token`), omit this
+        header — the JWT carries all the authentication and integrity
+        guarantees.
+
+
+        **Replay Protection:** The signature includes a timestamp to prevent
+        replay attacks.
+
+        Requests with timestamps older than 5 minutes are rejected.
+
+
+        The signature payload differs by HTTP method:
+
+        - **POST/PUT/PATCH/DELETE**: HMAC-SHA256 of `{timestamp}.{body}`
+
+        - **GET**: HMAC-SHA256 of `{timestamp}.{uri}`
+
+
+        The signature is calculated as:
+
+        1. Get the current Unix timestamp in milliseconds
+
+        2. Determine the payload:
+           - For POST/PUT/PATCH/DELETE: Use `{timestamp}.{body}` where body is the request body
+           - For GET: Use `{timestamp}.{uri}` where uri is the full request URI (e.g., `/v2/members?limit=10`)
+        3. Calculate HMAC-SHA256 of the combined payload using your API secret
+
+        4. Hex-encode the output
+
+        5. Include the timestamp in the `X-Timestamp` header
+
+
+        Example for GET request to `/v2/members?limit=10`:
+
+        ```
+
+        timestamp = 1699564800000
+
+        payload = "1699564800000./v2/members?limit=10"
+
+        signature = HMAC-SHA256(secret, payload)
+
+        X-Signature: hex(signature)
+
+        X-Timestamp: 1699564800000
+
+        ```
+
+
+        Example for POST request with body `{"topicId":"123","text":"Hello"}`:
+
+        ```
+
+        timestamp = 1699564800000
+
+        payload = '1699564800000.{"topicId":"123","text":"Hello"}'
+
+        signature = HMAC-SHA256(secret, payload)
+
+        X-Signature: hex(signature)
+
+        X-Timestamp: 1699564800000
+
+        ```
+
+
+        For `multipart/form-data` requests, sign the exact raw request body
+        bytes
+
+        (including boundaries and file bytes) as transmitted.
+      schema:
+        type: string
+        pattern: ^[a-f0-9]{64}$
+        example: a3d5f8e7c2b1d4f6a8e9c7b5d3f1a2e4b6c8d0f2e4a6b8c0d2e4f6a8b0c2d4e6
+    XTimestamp:
+      name: X-Timestamp
+      in: header
+      required: false
+      description: >
+        Unix timestamp in milliseconds when the request was created.
+
+        Used for replay protection — requests older than 5 minutes are rejected.
+
+
+        **Required only when authenticating with a static API key.** Omit when
+        using an OAuth access token.
+      schema:
+        type: integer
+        format: int64
+        example: 1699564800000
+  schemas:
+    OAuthTokenRequest:
+      type: object
+      required:
+        - grant_type
+      properties:
+        grant_type:
+          type: string
+          enum:
+            - client_credentials
+          description: OAuth 2.0 grant type. Only `client_credentials` is supported.
+        client_id:
+          type: string
+          description: >-
+            The bot's OAuth `clientId` (returned when the bot was created or
+            rotated). Omit if you authenticate via HTTP Basic Auth.
+          example: b@660e8400-e29b-41d4-a716-446655440003
+        client_secret:
+          type: string
+          description: >-
+            The bot's OAuth `clientSecret`. Omit if you authenticate via HTTP
+            Basic Auth.
+          example: very-long-random-secret
+        scope:
+          type: string
+          description: >
+            Space-separated list of OAuth scopes to request. Optional — if
+            omitted, the issued token receives every scope the bot was granted
+            at creation.
+
+            Passing a scope the bot was not granted will fail with
+            `invalid_grant`.
+          example: channel:list message:send
+    OAuthTokenResponse:
+      type: object
+      required:
+        - access_token
+        - token_type
+        - expires_in
+      properties:
+        access_token:
+          type: string
+          description: >
+            JWT bearer token. Pass as `Authorization: Bearer <access_token>` on
+            every API request.
+        token_type:
+          type: string
+          enum:
+            - Bearer
+          description: Always `Bearer`.
+        expires_in:
+          type: integer
+          format: int64
+          description: Token lifetime in seconds (default 3600 = 1 hour).
+          example: 3600
+        scope:
+          type: string
+          description: Space-separated list of scopes granted to this token.
+          example: channel:list message:send
+    OAuthErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: RFC 6749 §5.2 error code.
+          enum:
+            - invalid_request
+            - invalid_client
+            - invalid_grant
+            - unsupported_grant_type
+            - invalid_scope
+        error_description:
+          type: string
+          description: >-
+            Human-readable explanation. Safe to surface to operators; not
+            localized.
+    PollOption:
+      type: object
+      properties:
+        id:
+          type: string
+          description: >-
+            Server-generated 6-character option ID. Use this as `optionId` when
+            voting.
+          example: a1b2c3
+        text:
+          type: string
+          description: Display text for this option.
+          example: Bug fixes
+    PollCreateRequest:
+      type: object
+      required:
+        - topicId
+        - question
+        - options
+        - selectionType
+      properties:
+        topicId:
+          type: string
+          format: uuid
+          description: ID of the topic to post the poll in. The bot must be a member.
+          example: 550e8400-e29b-41d4-a716-446655440000
+        question:
+          type: string
+          maxLength: 500
+          description: The poll question / title.
+          example: Which release should we prioritize?
+        options:
+          type: array
+          minItems: 2
+          maxItems: 10
+          description: >-
+            Poll answer options. Each item is the display text; IDs are
+            generated server-side.
+          items:
+            type: string
+            maxLength: 1000
+          example:
+            - Bug fixes
+            - New features
+            - Performance improvements
+        selectionType:
+          type: string
+          enum:
+            - single
+            - multiple
+          description: |
+            Whether voters may select one or multiple options:
+            - `single`: one choice allowed
+            - `multiple`: any number of choices allowed
+          example: single
+        anonymous:
+          type: boolean
+          description: >
+            If `true`, voter identities are hidden. Anonymous polls do **not**
+            support voting via the API.
+          example: false
+    PollCreateResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The poll ID. Use this as the `pollId` path parameter when voting.
+          example: 770e8400-e29b-41d4-a716-446655440099
+        topicId:
+          type: string
+          format: uuid
+          description: ID of the topic the poll was posted in.
+          example: 550e8400-e29b-41d4-a716-446655440000
+        question:
+          type: string
+          description: The poll question.
+          example: Which release should we prioritize?
+        options:
+          type: array
+          description: Poll options with their server-generated IDs.
+          items:
+            $ref: '#/components/schemas/PollOption'
+        selectionType:
+          type: string
+          enum:
+            - single
+            - multiple
+          example: single
+        status:
+          type: string
+          enum:
+            - active
+            - closed
+          description: Current poll status.
+          example: active
+        anonymous:
+          type: boolean
+          description: Whether the poll is anonymous.
+          example: false
+        createdAt:
+          type: integer
+          format: int64
+          description: Creation timestamp in milliseconds.
+          example: 1699564800000
+    PollVoteCreateRequest:
+      type: object
+      required:
+        - optionId
+      properties:
+        optionId:
+          type: string
+          maxLength: 6
+          description: >-
+            The ID of the option to vote for. Use the `id` values from the
+            `options` array in the create poll response.
+          example: a1b2c3
+    PollVoteCreateResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: >-
+            Unique vote ID (composite of attachmentId, optionId, and voter
+            profile ID).
+          example: >-
+            770e8400-e29b-41d4-a716-446655440099_a1b2c3_b@f951b968-bf80-4ee6-bbbe-6ca338f57fc6
+        attachmentId:
+          type: string
+          format: uuid
+          description: The poll's attachment ID.
+          example: 770e8400-e29b-41d4-a716-446655440099
+        optionId:
+          type: string
+          description: The option that was voted for.
+          example: a1b2c3
+        createdAt:
+          type: integer
+          format: int64
+          description: Vote creation timestamp in milliseconds.
+          example: 1699564800000
+    AgenticOrganizationCreateRequest:
+      type: object
+      required:
+        - companyName
+        - humanEmail
+        - companySize
+        - industry
+        - botName
+      properties:
+        companyName:
+          type: string
+          maxLength: 100
+          description: Display name of the organization.
+          example: Acme Corp
+        humanEmail:
+          type: string
+          format: email
+          description: >-
+            The human user who will receive an invite and become the org's first
+            member.
+          example: founder@acme.com
+        companySize:
+          type: integer
+          minimum: 1
+          description: Number of employees. Mapped to a size range.
+          example: 50
+        industry:
+          type: string
+          description: Free-text industry description (e.g. "Software", "Healthcare").
+          example: Software
+        botName:
+          type: string
+          description: Display name for the agent bot installed in the organization.
+          example: Acme Assistant
+    AgenticOrganizationCreateResponse:
+      type: object
+      properties:
+        organizationId:
+          type: string
+          format: uuid
+          description: UUID of the newly created organization.
+          example: 067d0b2f-1ee8-49f2-bb09-e2d964c8cf6b
+        botProfileId:
+          type: string
+          description: >-
+            The bot's identity (format `b@<uuid>`). Use as `senderId` filter
+            when polling.
+          example: b@f951b968-bf80-4ee6-bbbe-6ca338f57fc6
+        channelId:
+          type: string
+          format: uuid
+          description: >-
+            The bot's control channel ID (same as the `Control Topic ID`
+            credential).
+          example: 1b383aef-15c2-44e2-b599-d1d40a8b286c
+        humanProfileId:
+          type: string
+          format: uuid
+          description: >-
+            The pending profile ID of the invited human. Use this to identify
+            the human once they join.
+          example: a3c2e1d0-9f8b-4e7a-b6c5-d4e3f2a1b0c9
+        credentials:
+          type: array
+          description: API credentials for the bot. Store the API Secret securely.
+          items:
+            type: object
+            properties:
+              label:
+                type: string
+                example: API Key
+              value:
+                type: string
+                example: utxDAedgfFXglaLX
+    MessageCreateRequest:
+      type: object
+      required:
+        - topicId
+        - text
+      properties:
+        topicId:
+          type: string
+          format: uuid
+          description: The ID of the topic to send the message to
+          example: 550e8400-e29b-41d4-a716-446655440000
+        text:
+          type: string
+          maxLength: 10000
+          description: |
+            The message text content.
+            To mention a member, use `<@profileId>` inside the text.
+            Example: `Hello <@550e8400-e29b-41d4-a716-446655440001>`
+          example: Hello from my integration!
+        externalId:
+          type: string
+          maxLength: 61
+          description: Optional external identifier for tracking purposes
+          example: build-12345
+    MessageCreateResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The created message ID
+        topicId:
+          type: string
+          format: uuid
+          description: The topic ID where the message was sent
+        createdAt:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds
+    MessageFileMetaRequest:
+      type: object
+      required:
+        - channelID
+      properties:
+        channelID:
+          type: string
+          format: uuid
+          description: >
+            Topic ID for the uploaded file message.
+
+            Note: multipart mode uses `channelID` (legacy field name) for
+            compatibility.
+          example: 550e8400-e29b-41d4-a716-446655440000
+        caption:
+          type: string
+          maxLength: 10000
+          description: Optional caption text for the file message
+          example: Quarterly report
+        externalId:
+          type: string
+          maxLength: 100
+          description: Optional external identifier for tracking purposes
+          example: report-2026-q1
+        compressImage:
+          type: boolean
+          description: |
+            Optional image compression flag.
+            Supported only for image uploads.
+          default: false
+    MessageFileUploadRequest:
+      type: object
+      required:
+        - metaPart
+        - filePart
+      properties:
+        metaPart:
+          $ref: '#/components/schemas/MessageFileMetaRequest'
+        filePart:
+          type: string
+          format: binary
+          description: File content to upload
+    MessagePatchRequest:
+      type: object
+      required:
+        - text
+      properties:
+        text:
+          type: string
+          description: Updated message text (max 10000 characters)
+          maxLength: 10000
+          example: Updated message content
+    MessageReactionCreateRequest:
+      type: object
+      required:
+        - reaction
+      properties:
+        reaction:
+          type: string
+          description: Emoji reaction to add
+          minLength: 1
+          example: 👍
+    MessageReactionCreateResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Reaction ID
+          example: 990e8400-e29b-41d4-a716-446655440005
+        messageId:
+          type: string
+          format: uuid
+          description: Message ID the reaction belongs to
+          example: 660e8400-e29b-41d4-a716-446655440001
+        reaction:
+          type: string
+          description: The reaction emoji
+          example: 👍
+        createdAt:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds
+          example: 1699564800000
+    UpdatesResponse:
+      type: object
+      required:
+        - updates
+        - nextOffset
+      properties:
+        updates:
+          type: array
+          items:
+            $ref: '#/components/schemas/PollingUpdate'
+          description: Ordered list of updates after the provided offset
+        nextOffset:
+          type: string
+          description: Opaque offset to pass as `offset` in the next `/v2/updates` call
+          example: AAAAAAABAAAAAAAAAAABAA==
+    PollingUpdate:
+      type: object
+      required:
+        - updateId
+        - eventType
+        - createdAt
+        - data
+      properties:
+        updateId:
+          type: string
+          description: Opaque update identifier. Use as offset in subsequent polling calls.
+          example: AAAAAAABAAAAAAAAAAABAA==
+        eventType:
+          type: string
+          enum:
+            - message.created
+            - message.updated
+            - message.deleted
+            - reaction.added
+            - reaction.removed
+            - member.added
+            - member.removed
+            - topic.updated
+          description: The update event type
+          example: message.created
+        createdAt:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds when the update was created
+          example: 1699564800000
+        data:
+          description: >-
+            Event payload. Structure matches the webhook `data` payload for the
+            same event type.
+          oneOf:
+            - $ref: '#/components/schemas/WebhookMessageCreatedData'
+            - $ref: '#/components/schemas/WebhookMessageUpdatedData'
+            - $ref: '#/components/schemas/WebhookMessageDeletedData'
+            - $ref: '#/components/schemas/WebhookReactionData'
+            - $ref: '#/components/schemas/WebhookMemberData'
+            - $ref: '#/components/schemas/WebhookTopicUpdatedData'
+    TopicCreateRequest:
+      type: object
+      required:
+        - name
+        - members
+      properties:
+        name:
+          type: string
+          maxLength: 64
+          description: The topic name
+          example: Project Updates
+        description:
+          type: string
+          maxLength: 10000
+          description: Optional topic description
+          example: Discussion for project milestones
+        members:
+          type: array
+          items:
+            type: string
+            format: uuid
+          maxItems: 100
+          description: >-
+            Array of user IDs to add as topic members (max 100). Your bot will
+            automatically be added as a member.
+          example:
+            - 550e8400-e29b-41d4-a716-446655440001
+            - 550e8400-e29b-41d4-a716-446655440002
+        externalId:
+          type: string
+          maxLength: 100
+          description: >-
+            Optional external identifier for tracking purposes. Must be unique
+            per bot - you cannot reuse the same external ID for multiple topics.
+          example: project-alpha
+    TopicCreateResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The created topic ID
+        name:
+          type: string
+          description: The topic name
+        members:
+          type: array
+          items:
+            type: string
+          description: Array of member IDs in the topic (including the bot)
+          example:
+            - 550e8400-e29b-41d4-a716-446655440001
+            - b@660e8400-e29b-41d4-a716-446655440003
+        externalId:
+          type: string
+          description: >-
+            The fully qualified external ID (bot_id:your_external_id). Only
+            present if externalId was provided in the request.
+          example: b@660e8400-e29b-41d4-a716-446655440003:project-alpha
+        createdAt:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds
+    TopicGetResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The topic ID
+          example: 550e8400-e29b-41d4-a716-446655440000
+        name:
+          type: string
+          description: The topic name
+          example: Project Updates
+        description:
+          type: string
+          description: The topic description
+          example: Discussion for project milestones
+        memberIds:
+          type: array
+          items:
+            type: string
+          description: Array of member IDs in the topic
+          example:
+            - 550e8400-e29b-41d4-a716-446655440001
+            - 550e8400-e29b-41d4-a716-446655440002
+    TopicPatchRequest:
+      type: object
+      description: At least one of name or description must be provided
+      minProperties: 1
+      properties:
+        name:
+          type: string
+          maxLength: 64
+          description: The new topic name
+          example: Updated Project Name
+        description:
+          type: string
+          maxLength: 10000
+          description: The new topic description
+          example: Updated discussion for project milestones
+    TopicMemberAddRequest:
+      type: object
+      required:
+        - memberIds
+      properties:
+        memberIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          minItems: 1
+          maxItems: 5
+          description: >-
+            Array of member IDs to add to the topic (max 5). All members must be
+            from the same organization as the bot and must not already be
+            members of the topic. Duplicate IDs in the request are automatically
+            removed.
+          example:
+            - 550e8400-e29b-41d4-a716-446655440003
+            - 550e8400-e29b-41d4-a716-446655440004
+    TopicMemberRemoveRequest:
+      type: object
+      required:
+        - memberIds
+      properties:
+        memberIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          minItems: 1
+          maxItems: 5
+          description: >-
+            Array of member IDs to remove from the topic (max 5). Members not in
+            the topic are silently ignored. Duplicates are automatically
+            removed.
+          example:
+            - 550e8400-e29b-41d4-a716-446655440003
+            - 550e8400-e29b-41d4-a716-446655440004
+    TopicMemberUpdateResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The topic ID
+          example: 550e8400-e29b-41d4-a716-446655440000
+        memberIds:
+          type: array
+          items:
+            type: string
+          description: Updated array of member IDs in the topic
+          example:
+            - 550e8400-e29b-41d4-a716-446655440001
+            - 550e8400-e29b-41d4-a716-446655440002
+        updatedAt:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds when the topic was updated
+          example: 1699564800000
+    TaskCreateRequest:
+      type: object
+      required:
+        - topicId
+        - title
+      properties:
+        topicId:
+          type: string
+          format: uuid
+          description: The ID of the topic where the task should be created
+          example: 550e8400-e29b-41d4-a716-446655440000
+        title:
+          type: string
+          maxLength: 256
+          description: The task title
+          example: Review documentation
+        description:
+          type: string
+          maxLength: 10000
+          description: Optional task description
+          example: Review and update all API documentation
+        assignee:
+          type: string
+          format: uuid
+          description: Optional user ID to assign the task to
+          example: 550e8400-e29b-41d4-a716-446655440001
+        dueDate:
+          type: integer
+          format: int64
+          description: Optional due date as Unix timestamp in milliseconds
+          example: 1699564800000
+        externalId:
+          type: string
+          maxLength: 100
+          description: Optional external identifier for tracking purposes
+          example: jira-PROJ-123
+    TaskCreateResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The created task ID
+        topicId:
+          type: string
+          format: uuid
+          description: The topic ID where the task was created
+        title:
+          type: string
+          description: The task title
+        createdAt:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds
+    TaskPatchRequest:
+      type: object
+      description: Partial task update payload. At least one field must be provided.
+      properties:
+        topicId:
+          type: string
+          format: uuid
+          description: Required when `status` is provided.
+          example: 550e8400-e29b-41d4-a716-446655440000
+        name:
+          type: string
+          maxLength: 256
+          description: Task title (alias of `title`). Provide either `name` or `title`.
+          example: Review webhook integration docs
+        title:
+          type: string
+          maxLength: 256
+          description: Task title. Provide either `title` or `name`.
+          example: Review webhook integration docs
+        description:
+          type: string
+          maxLength: 10000
+          description: Task description
+          example: Update docs with long polling + multipart examples
+        assignee:
+          type: string
+          description: Assignee profile ID. Empty string removes assignee.
+          example: 550e8400-e29b-41d4-a716-446655440001
+        dueDate:
+          type: integer
+          format: int64
+          description: Due date as Unix timestamp in milliseconds. Set to `0` to clear.
+          example: 1699564800000
+        status:
+          type: string
+          description: Task status
+          enum:
+            - Open
+            - Done
+          example: Done
+    TaskPatchResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Updated task ID
+        updatedAt:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds when the task was updated
+    TaskResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Task ID
+          example: 880e8400-e29b-41d4-a716-446655440003
+        topicId:
+          type: string
+          format: uuid
+          description: Topic ID the task belongs to
+          example: 550e8400-e29b-41d4-a716-446655440000
+        title:
+          type: string
+          description: Task title
+          example: Review documentation
+        description:
+          type: string
+          description: Task description
+          example: Review and update all API documentation
+        status:
+          type: string
+          enum:
+            - Open
+            - Done
+          description: Task status
+          example: Open
+        assignee:
+          type: string
+          description: Assignee profile ID (empty if unassigned)
+          example: 550e8400-e29b-41d4-a716-446655440001
+        dueDate:
+          type: integer
+          format: int64
+          description: Due date as Unix timestamp in milliseconds (0 if not set)
+          example: 1699564800000
+        isDueDateTimeSelected:
+          type: boolean
+          description: Whether due date includes time
+          example: false
+        index:
+          type: number
+          format: double
+          description: Internal task ordering index
+          example: 1000000
+        createdAt:
+          type: integer
+          format: int64
+          description: Task creation timestamp (ms)
+          example: 1699564800000
+        updatedAt:
+          type: integer
+          format: int64
+          description: Task last update timestamp (ms)
+          example: 1699564801000
+    TaskListResponse:
+      type: object
+      properties:
+        tasks:
+          type: array
+          description: Tasks matching the provided filters
+          items:
+            $ref: '#/components/schemas/TaskResponse'
+        nextCursor:
+          type: string
+          description: Cursor for the next page. Omitted when there are no more results.
+        hasMore:
+          type: boolean
+          description: Whether there are more tasks available.
+    MemberResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: The member ID
+          example: 550e8400-e29b-41d4-a716-446655440001
+        name:
+          type: string
+          description: The member's name
+          example: John Doe
+        email:
+          type: string
+          format: email
+          description: The member's email address
+          example: john@example.com
+        phone:
+          type: string
+          description: The member's phone number
+          example: '+1234567890'
+        externalId:
+          type: string
+          description: Optional external identifier if set by your integration
+          example: emp-001
+        createdAt:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds when the member was created
+          example: 1699564800000
+        updatedAt:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds when the member was last updated
+          example: 1699564800000
+        status:
+          type: string
+          description: The member's status
+          enum:
+            - Pending
+            - Active
+            - Deleted
+            - Archived
+          example: Active
+    MembersListResponse:
+      type: object
+      properties:
+        members:
+          type: array
+          items:
+            $ref: '#/components/schemas/MemberResponse'
+          description: Array of member objects
+        nextCursor:
+          type: string
+          description: Cursor for the next page. Omitted when there are no more results.
+        hasMore:
+          type: boolean
+          description: Whether there are more members available.
+    TopicsListResponse:
+      type: object
+      properties:
+        topics:
+          type: array
+          items:
+            $ref: '#/components/schemas/TopicListItem'
+          description: Array of topic objects
+        nextCursor:
+          type: string
+          description: Cursor for the next page. Omitted when there are no more results.
+        hasMore:
+          type: boolean
+          description: Whether there are more topics available.
+    TopicListItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The topic ID
+          example: 550e8400-e29b-41d4-a716-446655440000
+        name:
+          type: string
+          description: The topic name (for DMs, this is the other participant's name)
+          example: Project Updates
+        description:
+          type: string
+          description: The topic description (empty for DMs)
+          example: Discussion for project milestones
+        type:
+          type: string
+          enum:
+            - topic
+            - dm
+          description: |
+            The type of conversation:
+            - `topic`: A group chat/channel with multiple members
+            - `dm`: A direct message conversation between two members
+          example: topic
+        properties:
+          type: array
+          items:
+            type: string
+            enum:
+              - announcement
+          description: |
+            Topic properties/flags:
+            - `announcement`: An announcement channel (read-only for non-admins)
+          example: []
+        members:
+          type: array
+          items:
+            type: string
+          description: Array of member IDs in the topic
+          example:
+            - 550e8400-e29b-41d4-a716-446655440001
+            - 550e8400-e29b-41d4-a716-446655440002
+        createdAt:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds when the topic was created
+          example: 1699564800000
+        updatedAt:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds when the topic was last updated
+          example: 1699564800000
+        externalId:
+          type: string
+          description: Optional external identifier if set when creating the topic
+          example: project-alpha
+    TopicMessagesResponse:
+      type: object
+      properties:
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/MessageItem'
+          description: Array of message objects
+        nextCursor:
+          type: string
+          description: >-
+            Cursor for the next page. Pass this value to the `cursor` parameter
+            to get the next page.
+          example: >-
+            eyJ0IjoxNjk5NTY0NzAwMDAwLCJpZCI6IjY2MGU4NDAwLWUyOWItNDFkNC1hNzE2LTQ0NjY1NTQ0MDAwMiIsIm8iOiJkZXNjIn0=
+        hasMore:
+          type: boolean
+          description: Whether there are more messages to fetch
+          example: true
+    MessageItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The message ID
+          example: 660e8400-e29b-41d4-a716-446655440001
+        topicId:
+          type: string
+          format: uuid
+          description: The topic ID where the message was sent
+          example: 550e8400-e29b-41d4-a716-446655440000
+        senderId:
+          type: string
+          description: The sender's member ID
+          example: 550e8400-e29b-41d4-a716-446655440001
+        senderName:
+          type: string
+          description: The sender's display name
+          example: Alice Johnson
+        senderType:
+          type: string
+          enum:
+            - user
+            - bot
+            - system
+          description: The type of sender
+          example: user
+        text:
+          type: string
+          description: >-
+            The message text content. Mention tokens are preserved as
+            `<@profileId>` (including bot profile IDs like `<@b@...>`).
+          example: Hello team!
+        createdAt:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds when the message was created
+          example: 1699564800000
+        updatedAt:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds when the message was last updated
+          example: 1699564800000
+        isEdited:
+          type: boolean
+          description: Whether the message has been edited
+          example: false
+        isSystem:
+          type: boolean
+          description: Whether this is a system message
+          example: false
+        replyCount:
+          type: integer
+          description: Number of replies to this message (if it's a thread parent)
+          example: 0
+        attachments:
+          type: array
+          items:
+            $ref: '#/components/schemas/MessageAttachment'
+          description: Array of attachments
+        mentions:
+          type: array
+          items:
+            $ref: '#/components/schemas/MessageMention'
+          description: Array of user mentions in the message
+        reactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/MessageReaction'
+          description: Array of reactions to the message
+    MessageAttachment:
+      type: object
+      properties:
+        id:
+          type: string
+          description: The attachment ID
+        type:
+          type: string
+          enum:
+            - image
+            - file
+            - video
+            - audio
+          description: The attachment type
+        name:
+          type: string
+          description: The file name
+        url:
+          type: string
+          description: URL to download the attachment
+    MessageMention:
+      type: object
+      properties:
+        id:
+          type: string
+          description: The mentioned profile ID
+          example: 550e8400-e29b-41d4-a716-446655440001
+        name:
+          type: string
+          description: Display name used for the mention text
+          example: Alice Johnson
+    MessageReaction:
+      type: object
+      properties:
+        emoji:
+          type: string
+          description: The emoji used for the reaction
+          example: 👍
+        count:
+          type: integer
+          description: Number of users who reacted with this emoji
+          example: 3
+        userIds:
+          type: array
+          items:
+            type: string
+          description: IDs of users who reacted (if includeReactionUsers is true)
+          example:
+            - 550e8400-e29b-41d4-a716-446655440001
+    WebhookEvent:
+      type: object
+      description: |
+        The envelope for all webhook events delivered to your webhook URL.
+      required:
+        - id
+        - type
+        - eventVersion
+        - timestamp
+        - data
+      properties:
+        id:
+          type: string
+          description: Unique identifier for this event (use for deduplication)
+          example: evt_550e8400-e29b-41d4-a716-446655440099
+        type:
+          type: string
+          enum:
+            - message.created
+            - message.updated
+            - message.deleted
+            - reaction.added
+            - reaction.removed
+            - member.added
+            - member.removed
+            - topic.updated
+          description: The event type
+          example: message.created
+        eventVersion:
+          type: integer
+          description: Schema version for this event type (currently 1)
+          example: 1
+        timestamp:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds when the event occurred
+          example: 1699564800000
+        data:
+          type: object
+          description: Event-specific payload (see individual event schemas)
+    WebhookMessageCreatedEvent:
+      allOf:
+        - $ref: '#/components/schemas/WebhookEvent'
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - message.created
+            data:
+              $ref: '#/components/schemas/WebhookMessageCreatedData'
+      example:
+        id: evt_550e8400-e29b-41d4-a716-446655440099
+        type: message.created
+        eventVersion: 1
+        timestamp: 1699564800000
+        data:
+          message:
+            id: 660e8400-e29b-41d4-a716-446655440001
+            topicId: 550e8400-e29b-41d4-a716-446655440000
+            senderId: 550e8400-e29b-41d4-a716-446655440001
+            senderName: Alice Johnson
+            senderType: user
+            type: text
+            text: Hello team!
+            createdAt: 1699564800000
+          truncated: false
+    WebhookMessageCreatedData:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          $ref: '#/components/schemas/WebhookMessage'
+        truncated:
+          type: boolean
+          description: Whether the payload content was truncated
+          example: false
+    WebhookMessageUpdatedEvent:
+      allOf:
+        - $ref: '#/components/schemas/WebhookEvent'
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - message.updated
+            data:
+              $ref: '#/components/schemas/WebhookMessageUpdatedData'
+      description: >
+        Sent when a message is edited or when transcription completes for audio
+        messages.
+
+        For text edits, payload may include `message.previousText` and
+        `updatedFields`.
+
+        For transcription updates, check `attachments[].transcription`.
+      example:
+        id: evt_550e8400-e29b-41d4-a716-446655440099
+        type: message.updated
+        eventVersion: 1
+        timestamp: 1699564802000
+        data:
+          message:
+            id: 660e8400-e29b-41d4-a716-446655440001
+            topicId: 550e8400-e29b-41d4-a716-446655440000
+            senderId: 550e8400-e29b-41d4-a716-446655440001
+            senderType: user
+            senderName: Alice Johnson
+            type: text
+            text: Hello team!!
+            previousText: Hello team!
+            createdAt: 1699564800000
+            updatedAt: 1699564802000
+          updatedFields:
+            - text
+          truncated: false
+    WebhookMessageUpdatedData:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          $ref: '#/components/schemas/WebhookMessage'
+        updatedFields:
+          type: array
+          items:
+            type: string
+          description: List of fields that changed
+          example:
+            - text
+        truncated:
+          type: boolean
+          description: Whether the payload content was truncated
+          example: false
+    WebhookMessageDeletedEvent:
+      allOf:
+        - $ref: '#/components/schemas/WebhookEvent'
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - message.deleted
+            data:
+              $ref: '#/components/schemas/WebhookMessageDeletedData'
+      example:
+        id: evt_550e8400-e29b-41d4-a716-446655440099
+        type: message.deleted
+        eventVersion: 1
+        timestamp: 1699564800000
+        data:
+          messageId: 660e8400-e29b-41d4-a716-446655440001
+          topicId: 550e8400-e29b-41d4-a716-446655440000
+          deletedAt: 1699564800000
+          deletedBy: 550e8400-e29b-41d4-a716-446655440001
+          message:
+            id: 660e8400-e29b-41d4-a716-446655440001
+            topicId: 550e8400-e29b-41d4-a716-446655440000
+            senderId: 550e8400-e29b-41d4-a716-446655440001
+    WebhookMessageDeletedData:
+      type: object
+      required:
+        - messageId
+        - topicId
+      properties:
+        messageId:
+          type: string
+          format: uuid
+          description: The deleted message ID
+        topicId:
+          type: string
+          format: uuid
+          description: The topic where the message was deleted
+        deletedAt:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds when deletion occurred
+          example: 1699564800000
+        deletedBy:
+          type: string
+          description: The user ID who deleted the message
+        message:
+          type: object
+          description: Minimal message snapshot
+          properties:
+            id:
+              type: string
+              format: uuid
+            topicId:
+              type: string
+              format: uuid
+            senderId:
+              type: string
+    WebhookReactionAddedEvent:
+      allOf:
+        - $ref: '#/components/schemas/WebhookEvent'
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - reaction.added
+            data:
+              $ref: '#/components/schemas/WebhookReactionData'
+      example:
+        id: evt_550e8400-e29b-41d4-a716-446655440099
+        type: reaction.added
+        eventVersion: 1
+        timestamp: 1699564800000
+        data:
+          messageId: 660e8400-e29b-41d4-a716-446655440001
+          topicId: 550e8400-e29b-41d4-a716-446655440000
+          emoji: 👍
+          userId: 550e8400-e29b-41d4-a716-446655440001
+          reactionId: 990e8400-e29b-41d4-a716-446655440005
+          createdAt: 1699564800000
+          reaction:
+            id: 990e8400-e29b-41d4-a716-446655440005
+            messageId: 660e8400-e29b-41d4-a716-446655440001
+            topicId: 550e8400-e29b-41d4-a716-446655440000
+            userId: 550e8400-e29b-41d4-a716-446655440001
+            emoji: 👍
+    WebhookReactionRemovedEvent:
+      allOf:
+        - $ref: '#/components/schemas/WebhookEvent'
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - reaction.removed
+            data:
+              $ref: '#/components/schemas/WebhookReactionData'
+    WebhookReactionData:
+      type: object
+      required:
+        - messageId
+        - topicId
+        - emoji
+        - userId
+      properties:
+        messageId:
+          type: string
+          format: uuid
+          description: The message that was reacted to
+        topicId:
+          type: string
+          format: uuid
+          description: The topic containing the message
+        emoji:
+          type: string
+          description: The emoji that was added/removed
+          example: 👍
+        userId:
+          type: string
+          description: The user who added/removed the reaction
+          example: 550e8400-e29b-41d4-a716-446655440001
+        reactionId:
+          type: string
+          format: uuid
+          description: Reaction ID (present when available)
+        createdAt:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds when the reaction event was created
+          example: 1699564800000
+        reaction:
+          $ref: '#/components/schemas/WebhookReactionObject'
+    WebhookReactionObject:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Reaction ID
+        messageId:
+          type: string
+          format: uuid
+          description: The reacted message ID
+        topicId:
+          type: string
+          format: uuid
+          description: Topic ID containing the message
+        userId:
+          type: string
+          description: The reacting user ID
+        emoji:
+          type: string
+          description: The reaction emoji
+    WebhookMemberAddedEvent:
+      allOf:
+        - $ref: '#/components/schemas/WebhookEvent'
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - member.added
+            data:
+              $ref: '#/components/schemas/WebhookMemberData'
+      example:
+        id: evt_550e8400-e29b-41d4-a716-446655440099
+        type: member.added
+        eventVersion: 1
+        timestamp: 1699564800000
+        data:
+          topicId: 550e8400-e29b-41d4-a716-446655440000
+          memberIds:
+            - 550e8400-e29b-41d4-a716-446655440003
+          memberId: 550e8400-e29b-41d4-a716-446655440003
+          memberType: user
+          actorId: 550e8400-e29b-41d4-a716-446655440001
+          createdAt: 1699564800000
+    WebhookMemberRemovedEvent:
+      allOf:
+        - $ref: '#/components/schemas/WebhookEvent'
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - member.removed
+            data:
+              $ref: '#/components/schemas/WebhookMemberData'
+    WebhookMemberData:
+      type: object
+      required:
+        - topicId
+        - memberIds
+      properties:
+        topicId:
+          type: string
+          format: uuid
+          description: The topic where the member was added/removed
+        memberIds:
+          type: array
+          items:
+            type: string
+          description: One or more member IDs affected by the operation
+          example:
+            - 550e8400-e29b-41d4-a716-446655440003
+        memberId:
+          type: string
+          description: Single member ID (present when exactly one member changed)
+          example: 550e8400-e29b-41d4-a716-446655440003
+        memberType:
+          type: string
+          enum:
+            - user
+            - bot
+          description: Type of member for single-member events
+          example: user
+        actorId:
+          type: string
+          description: The actor who triggered the member change
+          example: 550e8400-e29b-41d4-a716-446655440001
+        createdAt:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds when the event payload was created
+          example: 1699564800000
+    WebhookTopicUpdatedEvent:
+      allOf:
+        - $ref: '#/components/schemas/WebhookEvent'
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - topic.updated
+            data:
+              $ref: '#/components/schemas/WebhookTopicUpdatedData'
+      example:
+        id: evt_550e8400-e29b-41d4-a716-446655440099
+        type: topic.updated
+        eventVersion: 1
+        timestamp: 1699564800000
+        data:
+          topicId: 550e8400-e29b-41d4-a716-446655440000
+          name: Project Updates - Q4
+          actorId: 550e8400-e29b-41d4-a716-446655440001
+          changes:
+            name: Project Updates - Q4
+    WebhookTopicUpdatedData:
+      type: object
+      required:
+        - topicId
+      properties:
+        topicId:
+          type: string
+          format: uuid
+          description: The topic that was updated
+        name:
+          type: string
+          description: New topic name (only present if changed)
+        description:
+          type: string
+          description: New topic description (only present if changed)
+        actorId:
+          type: string
+          description: The actor who made the update
+        changes:
+          type: object
+          description: Map of changed fields and their new values
+          additionalProperties: true
+    WebhookMessage:
+      type: object
+      description: >
+        Message object as delivered in webhook events. Includes additional
+        fields
+
+        not present in the REST API response, such as message type-specific
+        data.
+      required:
+        - id
+        - topicId
+        - senderId
+        - senderName
+        - senderType
+        - type
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The message ID
+        topicId:
+          type: string
+          format: uuid
+          description: The topic ID where the message was sent
+        senderId:
+          type: string
+          description: The sender's member ID
+          example: 550e8400-e29b-41d4-a716-446655440001
+        senderName:
+          type: string
+          description: The sender's display name
+          example: Alice Johnson
+        senderType:
+          type: string
+          enum:
+            - user
+            - bot
+            - system
+          description: The type of sender
+        type:
+          type: string
+          enum:
+            - text
+            - image
+            - file
+            - video
+            - audio
+            - location
+            - task
+            - contact
+          description: |
+            The message type:
+            - `text`: Regular text message
+            - `image`, `file`, `video`, `audio`: Message with attachment
+            - `location`: Shared location
+            - `task`: Task snapshot (created, updated, completed, etc.)
+            - `contact`: Shared contact
+        text:
+          type: string
+          description: |
+            The message text content (may be empty for non-text types).
+            Mention tokens are preserved as `<@profileId>`.
+        previousText:
+          type: string
+          description: >-
+            Previous message text (present on `message.updated` when text
+            changed)
+        createdAt:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds when the message was created
+        updatedAt:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds when the message was last updated
+        parentId:
+          type: string
+          format: uuid
+          description: ID of the message being replied to (for threaded replies)
+        mentionedProfiles:
+          type: array
+          items:
+            type: string
+          description: IDs of mentioned users in the message
+        attachments:
+          type: array
+          items:
+            $ref: '#/components/schemas/WebhookAttachment'
+          description: Array of file attachments
+        mentions:
+          type: array
+          items:
+            $ref: '#/components/schemas/MessageMention'
+          description: Array of user mentions in the message
+        location:
+          $ref: '#/components/schemas/WebhookLocation'
+        task:
+          $ref: '#/components/schemas/WebhookTask'
+        contact:
+          $ref: '#/components/schemas/WebhookContact'
+    WebhookAttachment:
+      type: object
+      description: >
+        File attachment with download URL. URLs are signed and expire after 60
+        minutes.
+
+        Download files promptly after receiving the webhook.
+      properties:
+        id:
+          type: string
+          description: The attachment ID
+        type:
+          type: string
+          enum:
+            - image
+            - file
+            - video
+            - audio
+          description: The attachment type
+        name:
+          type: string
+          description: The original file name
+          example: document.pdf
+        url:
+          type: string
+          format: uri
+          description: |
+            Signed URL to download the attachment.
+            **Important:** URLs expire after 60 minutes.
+          example: https://storage.zenzap.co/attachments/...?token=...&expires=...
+        transcription:
+          $ref: '#/components/schemas/WebhookTranscription'
+      example:
+        id: att_550e8400-e29b-41d4-a716-446655440088
+        type: audio
+        name: voice-note.mp3
+        url: https://storage.zenzap.co/attachments/...
+        transcription:
+          status: Done
+          text: Hey team, just a quick update on the project...
+    WebhookTranscription:
+      type: object
+      description: >
+        Transcription data for audio attachments (voice messages).
+
+
+        **Transcription flow:**
+
+        1. `message.created` arrives with `transcription.status: "Pending"`
+
+        2. `message.updated` arrives when transcription completes with `status:
+        "Done"` and `text` populated
+      properties:
+        status:
+          type: string
+          enum:
+            - Pending
+            - Started
+            - Done
+            - Failed
+          description: |
+            Transcription status:
+            - `Pending`: Queued for transcription
+            - `Started`: Transcription in progress
+            - `Done`: Transcription complete, `text` field populated
+            - `Failed`: Transcription failed
+        text:
+          type: string
+          description: The transcribed text (only present when status is "Done")
+          example: Hey team, just a quick update on the project...
+    WebhookLocation:
+      type: object
+      description: Shared location data
+      properties:
+        latitude:
+          type: string
+          description: Latitude coordinate
+          example: '37.7749'
+        longitude:
+          type: string
+          description: Longitude coordinate
+          example: '-122.4194'
+        name:
+          type: string
+          description: Location name (optional)
+          example: San Francisco Office
+        address:
+          type: string
+          description: Street address (optional)
+          example: 123 Market St, San Francisco, CA
+    WebhookTask:
+      type: object
+      description: >
+        Task snapshot sent when a task is created, updated, or its status
+        changes.
+
+        The `action` field indicates what triggered this snapshot.
+      properties:
+        id:
+          type: string
+          description: The task ID
+        action:
+          type: string
+          enum:
+            - Added
+            - Updated
+            - Deleted
+            - MarkedAsDone
+            - MarkedAsOpened
+            - Replied
+          description: |
+            What triggered this task snapshot:
+            - `Added`: Task was created
+            - `Updated`: Task details were changed
+            - `Deleted`: Task was removed
+            - `MarkedAsDone`: Task was completed
+            - `MarkedAsOpened`: Task was reopened
+            - `Replied`: Comment was added to task
+        title:
+          type: string
+          description: Task title
+          example: Review documentation
+        text:
+          type: string
+          description: Task description
+          example: Please review the API docs by Friday
+        status:
+          type: string
+          enum:
+            - Open
+            - Done
+          description: Current task status
+        assignee:
+          type: string
+          description: User ID of the assignee
+          example: 550e8400-e29b-41d4-a716-446655440001
+        dueDate:
+          type: integer
+          format: int64
+          description: Due date as Unix timestamp in milliseconds
+          example: 1699651200000
+        isDueDateTimeSelected:
+          type: boolean
+          description: Whether a specific time was selected for the due date
+        parentId:
+          type: string
+          description: Parent task ID (for subtasks)
+        subItemsCount:
+          type: integer
+          description: Number of subtasks
+          example: 3
+    WebhookContact:
+      type: object
+      description: Shared contact information
+      properties:
+        name:
+          type: string
+          description: Contact name
+          example: John Doe
+        phoneNumbers:
+          type: array
+          items:
+            type: string
+          description: Phone numbers
+          example:
+            - '+1234567890'
+        emails:
+          type: array
+          items:
+            type: string
+          description: Email addresses
+          example:
+            - john@example.com
+        role:
+          type: string
+          description: Job title or role
+          example: Engineer
+        location:
+          type: string
+          description: Location or office
+          example: San Francisco
+        linkedIn:
+          type: string
+          description: LinkedIn profile URL
+          example: https://linkedin.com/in/johndoe
+        profileId:
+          type: string
+          description: Zenzap profile ID if the contact is a Zenzap user
+          example: 550e8400-e29b-41d4-a716-446655440001
+  responses:
+    BadRequest:
+      description: Bad request - invalid input
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: text is required
+    Unauthorized:
+      description: Unauthorized - invalid or missing API token
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: unauthorized
+    Forbidden:
+      description: Forbidden - you do not have permission to perform this action
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: forbidden
+    Conflict:
+      description: Conflict - request cannot be completed in current state
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: delivery mode is not polling
+    NotFound:
+      description: Resource not found
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: Topic not found
+    InternalServerError:
+      description: Internal server error
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: internal server error
+tags:
+  - name: OAuth
+    description: >
+      OAuth 2.0 `client_credentials` grant. Used by API-key bots that were
+      created with `credentialType: oauth` to mint short-lived bearer access
+      tokens.
+
+
+      **In a nutshell:**
+
+      1. Get a `clientId` and `clientSecret` from your bot in the Zenzap admin
+      console. The `clientSecret` is shown once at creation; if lost, rotate it
+      from the same screen.
+
+      2. `POST /oauth/token` with `grant_type=client_credentials` to receive a
+      JWT access token (1-hour TTL).
+
+      3. Call any `/v2/*` endpoint with `Authorization: Bearer <access_token>`.
+      No `X-Signature` / `X-Timestamp` headers are needed on the OAuth path.
+
+      4. Re-mint when the token expires. There is **no refresh token**.
+
+
+      Scopes are granular per endpoint — see the [Authentication
+      page](/api-reference/authentication#oauth-scopes) for the full scope
+      catalog and the endpoint → scope mapping.
+  - name: Polls
+    description: >
+      Operations for creating polls, recording votes, and retracting votes.
+
+
+      Polls are posted as messages in a topic. When you create a poll, each
+      option is assigned a server-generated 6-character ID — use those IDs as
+      `optionId` when submitting votes.
+
+
+      **Voting constraints:**
+
+      - The bot must be a member of the topic the poll was posted in
+
+      - Anonymous polls (`anonymous: true`) do not support voting via the API
+
+      - Votes cannot be cast on closed or expired polls
+
+      - Each `{pollId, optionId, voter}` combination is idempotent
+
+      - Votes can be retracted with `DELETE /v2/polls/{pollId}/votes/{voteId}`
+      using the `id` returned when the vote was cast
+  - name: Agentic
+    description: >
+      Endpoints for AI agents to programmatically set up Zenzap organizations.
+
+
+      Use `POST /v2/agentic/organization/create` to create an organization,
+      install a bot, and invite a human user in a single request — no
+      authentication required.
+  - name: Messages
+    description: Operations for sending messages
+  - name: Topics (group chats/channels/conversations)
+    description: Operations for managing topics (group chats/channels/conversations)
+  - name: Tasks
+    description: Operations for managing tasks
+  - name: Members
+    description: Operations for retrieving organization members
+  - name: Long Polling
+    description: >
+      Long polling allows your integration to fetch outbound events instead of
+      receiving webhooks.
+
+
+      Use `GET /v2/updates` with:
+
+      - `offset`: value returned as `nextOffset` from the previous response
+
+      - `limit`: max updates per request (default 50, max 100)
+
+      - `timeout`: wait time in seconds when no updates are available (default
+      0, max 30)
+
+
+      Event payloads in polling responses match webhook `data` payloads for the
+      same event type.
+
+      This includes `data.message.attachments[]` with signed URLs for
+      file/image/video/audio messages.
+  - name: Webhooks
+    description: >
+      Webhooks allow your application to receive real-time notifications when
+      events occur in Zenzap.
+
+      Configure your webhook URL in the Zenzap console for your API key.
+
+
+      ## Webhook Headers
+
+
+      Each webhook delivery includes the following headers:
+
+      - `X-Zenzap-Event`: The event type (e.g., `message.created`)
+
+      - `X-Zenzap-Signature`: HMAC-SHA256 signature for verification
+
+      - `X-Zenzap-Timestamp`: Unix timestamp (milliseconds) when the webhook was
+      sent
+
+      - `X-Zenzap-Delivery-Id`: Unique ID for this delivery (for deduplication)
+
+
+      ## Signature Verification
+
+
+      Webhooks are signed using the same API secret (`BOT_SECRET`) used for
+      request signing.
+
+      Verify webhooks by calculating:
+
+      ```
+
+      expected = HMAC-SHA256(BOT_SECRET, "{timestamp}.{body}")
+
+      ```
+
+
+      Where `{timestamp}` is from `X-Zenzap-Timestamp` and `{body}` is the raw
+      request body.
+
+      If the request includes `Content-Encoding: gzip`, decompress before
+      verifying.
+
+
+      ## Webhook Payload Format
+
+
+      All webhook events follow the same envelope structure (see `WebhookEvent`
+      schema):
+
+
+      ```json
+
+      {
+        "id": "evt_550e8400-e29b-41d4-a716-446655440099",
+        "type": "message.created",
+        "eventVersion": 1,
+        "timestamp": 1699564800000,
+        "data": { ... }
+      }
+
+      ```
+
+
+      The `data` field contents vary by event type. See the schemas section for
+      detailed payload structures.
+
+
+      ## Event Types
+
+
+      ### Message Events
+
+
+      | Event | Trigger | Data Schema |
+
+      |-------|---------|-------------|
+
+      | `message.created` | New message sent | `WebhookMessageCreatedEvent` |
+
+      | `message.updated` | Message edited or transcription completed |
+      `WebhookMessageUpdatedEvent` |
+
+      | `message.deleted` | Message deleted | `WebhookMessageDeletedEvent` |
+
+
+      ### Reaction Events
+
+
+      | Event | Trigger | Data Schema |
+
+      |-------|---------|-------------|
+
+      | `reaction.added` | Emoji reaction added | `WebhookReactionAddedEvent` |
+
+      | `reaction.removed` | Emoji reaction removed |
+      `WebhookReactionRemovedEvent` |
+
+
+      ### Member Events
+
+
+      | Event | Trigger | Data Schema |
+
+      |-------|---------|-------------|
+
+      | `member.added` | User added to topic | `WebhookMemberAddedEvent` |
+
+      | `member.removed` | User removed from topic | `WebhookMemberRemovedEvent`
+      |
+
+
+      ### Topic Events
+
+
+      | Event | Trigger | Data Schema |
+
+      |-------|---------|-------------|
+
+      | `topic.updated` | Topic name/description changed |
+      `WebhookTopicUpdatedEvent` |
+
+
+      ## Message Types
+
+
+      Messages can have different types based on their content:
+
+
+      | Type | Description | Additional Fields |
+
+      |------|-------------|-------------------|
+
+      | `text` | Regular text message | `text` |
+
+      | `image`, `file`, `video`, `audio` | Message with attachment |
+      `attachments[]` |
+
+      | `location` | Shared location | `location` |
+
+      | `task` | Task snapshot | `task` |
+
+      | `contact` | Shared contact | `contact` |
+
+
+      ## Attachments & File Access
+
+
+      Attachment URLs in webhook payloads are signed and **expire after 60
+      minutes**.
+
+      Download files promptly after receiving the webhook.
+
+
+      ```json
+
+      {
+        "id": "att_...",
+        "type": "image",
+        "name": "screenshot.png",
+        "url": "https://storage.zenzap.co/attachments/...?token=...&expires=..."
+      }
+
+      ```
+
+
+      ## Voice Message Transcription
+
+
+      Voice messages (audio attachments) are automatically transcribed:
+
+
+      1. **`message.created`** - Initial message with `transcription.status:
+      "Pending"`
+
+      2. **`message.updated`** - Fired when transcription completes with
+      `status: "Done"`
+
+
+      ```json
+
+      {
+        "attachments": [{
+          "type": "audio",
+          "name": "voice-note.mp3",
+          "url": "https://...",
+          "transcription": {
+            "status": "Done",
+            "text": "Hey team, just a quick update..."
+          }
+        }]
+      }
+
+      ```
+
+
+      ## Reply Messages
+
+
+      Messages that reply to other messages include:
+
+      - `parentId`: UUID of the message being replied to

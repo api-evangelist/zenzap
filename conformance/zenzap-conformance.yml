@@ -1,0 +1,36 @@
+generated: '2026-07-21'
+method: derived
+source: openapi/zenzap-openapi-original.yml
+standards:
+- id: oauth2-client-credentials
+  conforms: true
+  evidence: openapi securityScheme oauth2ClientCredentials with clientCredentials flow and scopes
+- id: rfc6749-oauth2
+  conforms: true
+  evidence: token endpoint and RFC 6749 section 5.2 error object (OAuthErrorResponse)
+- id: hmac-request-signing
+  conforms: true
+  evidence: static API key requires HMAC-SHA256 X-Signature + X-Timestamp headers
+- id: webhooks
+  conforms: true
+  evidence: documented webhook event catalog with HMAC-signed delivery envelope
+- id: cursor-pagination
+  conforms: true
+  evidence: list operations expose limit + cursor query parameters
+- id: rfc9457-problem-details
+  conforms: false
+  evidence: resource errors return text/plain, not application/problem+json
+- id: scim-2.0
+  conforms: true
+  evidence: SCIM user provisioning documented for enterprise (docs.zenzap.co/enterprise/scim)
+- id: saml-sso
+  conforms: true
+  evidence: SAML SSO and role mapping documented for enterprise (docs.zenzap.co/enterprise/saml)
+compliance:
+  method: searched
+  source: https://trust.zenzap.co/
+  certifications:
+  - SOC 2
+  - ISO 27001
+  - HIPAA
+  - GDPR

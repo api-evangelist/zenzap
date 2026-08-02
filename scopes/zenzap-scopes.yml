@@ -1,0 +1,91 @@
+generated: '2026-07-21'
+method: searched
+source: openapi/zenzap-openapi-original.yml
+docs: https://docs.zenzap.co/api-reference/authentication
+notes: >-
+  Scopes are documented on the Authentication page and passed as a
+  space-separated subset to POST /oauth/token. Each endpoint requires a
+  specific scope.
+schemes:
+- name: oauth2ClientCredentials
+  source: openapi/zenzap-openapi-original.yml
+  flows:
+  - flow: clientCredentials
+    tokenUrl: https://api.zenzap.co/oauth/token
+  description: |-
+    OAuth 2.0 `client_credentials` grant for API-key bots. Use the `clientId` and `clientSecret` returned when the bot was created (or rotated) to mint short-lived access tokens. See [Authentication](/api-reference/authentication) for details.
+
+    Access tokens are bearer JWTs and expire after 1 hour. There is no refresh token — re-mint with the client credentials when the token expires.
+scopes:
+- scope: channel:list
+  description: List topics the bot belongs to
+  flows:
+  - clientCredentials
+  sources:
+  - openapi/zenzap-openapi-original.yml
+- scope: channel:read
+  description: Read topic metadata
+  flows:
+  - clientCredentials
+  sources:
+  - openapi/zenzap-openapi-original.yml
+- scope: channel:write
+  description: Create/update topics and manage members
+  flows:
+  - clientCredentials
+  sources:
+  - openapi/zenzap-openapi-original.yml
+- scope: member:read
+  description: List organization members
+  flows:
+  - clientCredentials
+  sources:
+  - openapi/zenzap-openapi-original.yml
+- scope: message:read
+  description: Read messages
+  flows:
+  - clientCredentials
+  sources:
+  - openapi/zenzap-openapi-original.yml
+- scope: message:send
+  description: Send messages
+  flows:
+  - clientCredentials
+  sources:
+  - openapi/zenzap-openapi-original.yml
+- scope: message:write
+  description: Edit / delete / mark-delivered / mark-read messages
+  flows:
+  - clientCredentials
+  sources:
+  - openapi/zenzap-openapi-original.yml
+- scope: poll:write
+  description: Create polls and cast / retract votes
+  flows:
+  - clientCredentials
+  sources:
+  - openapi/zenzap-openapi-original.yml
+- scope: reaction:write
+  description: Add and remove reactions on messages
+  flows:
+  - clientCredentials
+  sources:
+  - openapi/zenzap-openapi-original.yml
+- scope: task:read
+  description: Read tasks
+  flows:
+  - clientCredentials
+  sources:
+  - openapi/zenzap-openapi-original.yml
+- scope: task:write
+  description: Create / update / delete tasks
+  flows:
+  - clientCredentials
+  sources:
+  - openapi/zenzap-openapi-original.yml
+- scope: updates:read
+  description: Long-poll for outbound events
+  flows:
+  - clientCredentials
+  sources:
+  - openapi/zenzap-openapi-original.yml

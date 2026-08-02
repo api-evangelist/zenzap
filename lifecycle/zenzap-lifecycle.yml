@@ -1,0 +1,25 @@
+generated: '2026-07-21'
+method: searched
+source: https://docs.zenzap.co/api-reference/getting-started
+versioning:
+  scheme: uri-path
+  current: v2
+  docs: https://docs.zenzap.co/api-reference/getting-started
+event_versioning:
+  field: eventVersion
+  current: 1
+  detail: Webhook/update event payloads carry an integer eventVersion (currently 1).
+data_residency:
+  EU: https://api.zenzap.co
+  US: https://api.us.zenzap.co
+webhook_lifecycle:
+  retry: up to 3 attempts with exponential backoff
+  auto_pause: after 10 consecutive delivery failures
+deprecation:
+  policy_url: null
+  sunset_header: false
+  detail: No published deprecation policy or RFC 8594 Sunset/Deprecation header support found.
+status_page: null
+sla:
+  url: null
+deprecated_operations: []

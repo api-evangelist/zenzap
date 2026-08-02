@@ -1,0 +1,28 @@
+{
+  "provider": "zenzap",
+  "sources": [
+    "zenzap-agentic-api-openapi.yml",
+    "zenzap-long-polling-api-openapi.yml",
+    "zenzap-members-api-openapi.yml",
+    "zenzap-messages-api-openapi.yml",
+    "zenzap-oauth-api-openapi.yml",
+    "zenzap-polls-api-openapi.yml",
+    "zenzap-tasks-api-openapi.yml",
+    "zenzap-topics-group-chats-channels-conversations-api-openapi.yml"
+  ],
+  "outputs": [
+    "zenzap-agentic-api-openapi.yml",
+    "zenzap-long-polling-api-openapi.yml",
+    "zenzap-members-api-openapi.yml",
+    "zenzap-messages-api-openapi.yml",
+    "zenzap-oauth-api-openapi.yml",
+    "zenzap-polls-api-openapi.yml",
+    "zenzap-tasks-api-openapi.yml",
+    "zenzap-topics-group-chats-channels-conversations-api-openapi.yml"
+  ],
+  "archived": [],
+  "errors": [],
+  "warnings": [],
+  "notes": [],
+  "skipped": []
+}

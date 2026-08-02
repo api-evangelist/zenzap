@@ -1,0 +1,40 @@
+generated: '2026-07-21'
+method: derived
+source: openapi/zenzap-openapi-original.yml
+format: text-plain
+notes: >-
+  Zenzap resource endpoints return standard HTTP status codes with a plain-text
+  body (not RFC 9457 problem+json). The OAuth token endpoint returns a JSON
+  RFC 6749 error object. Derived from the shared components.responses in the
+  OpenAPI plus the rate-limits documentation.
+envelope:
+  api: text/plain body describing the error
+  oauth:
+    format: RFC 6749 section 5.2
+    fields: [error, error_description]
+    codes: [invalid_request, invalid_client, invalid_grant, unsupported_grant_type, invalid_scope]
+problems:
+- status: 400
+  name: BadRequest
+  title: Bad request - invalid input
+- status: 401
+  name: Unauthorized
+  title: Unauthorized - invalid or missing API token
+  remediation: Check Authorization header and, for API keys, the X-Signature/X-Timestamp signature.
+- status: 403
+  name: Forbidden
+  title: Forbidden - you do not have permission to perform this action
+  remediation: Ensure the bot is a member of the target topic and the token holds the required scope.
+- status: 404
+  name: NotFound
+  title: Resource not found
+- status: 409
+  name: Conflict
+  title: Conflict - request cannot be completed in current state
+- status: 429
+  name: TooManyRequests
+  title: Rate limit exceeded
+  remediation: Limit is 1,000 requests per API key per 60s window; back off exponentially and retry after the window resets.
+- status: 500
+  name: InternalServerError
+  title: Internal server error

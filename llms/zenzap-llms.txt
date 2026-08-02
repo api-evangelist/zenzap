@@ -1,0 +1,58 @@
+# Zenzap
+
+## Docs
+
+- [Create organization](https://docs.zenzap.co/api-reference/agentic/create-organization.md): Allows an external AI agent to programmatically create a Zenzap organization, install a bot (the agent itself), and invite a human user — all in a single request.
+- [Authentication](https://docs.zenzap.co/api-reference/authentication.md): Call the Zenzap API with your bot's credentials
+- [Getting Started](https://docs.zenzap.co/api-reference/getting-started.md): Get started with the Zenzap External Integration API
+- [Long Polling](https://docs.zenzap.co/api-reference/long-polling.md): Fetch outbound events with GET /v2/updates
+- [Get updates (long polling)](https://docs.zenzap.co/api-reference/long-polling/get-updates-long-polling.md): Retrieve outbound events for bots configured with **polling** delivery mode.
+- [Get current member](https://docs.zenzap.co/api-reference/members/get-current-member.md): Get information about the member associated with the current API key (the bot itself).
+- [List members](https://docs.zenzap.co/api-reference/members/list-members.md): Get a paginated list of all members in your organization. Only returns active members.
+- [Add a reaction to a message](https://docs.zenzap.co/api-reference/messages/add-a-reaction-to-a-message.md): Add an emoji reaction to a message. The bot must be a member of the channel.
+- [Delete a message](https://docs.zenzap.co/api-reference/messages/delete-a-message.md): Delete a message by ID. Only the bot that sent the message can delete it.
+- [Edit a message](https://docs.zenzap.co/api-reference/messages/edit-a-message.md): Edit the text of a message. Only the bot that sent the message can edit it, and the bot must still be a member of the channel.
+- [Mark a message as delivered](https://docs.zenzap.co/api-reference/messages/mark-a-message-as-delivered.md): Mark a message as delivered by the current bot.
+- [Mark a message as read](https://docs.zenzap.co/api-reference/messages/mark-a-message-as-read.md): Mark a message as read by the current bot.
+- [Remove a reaction from a message](https://docs.zenzap.co/api-reference/messages/remove-a-reaction-from-a-message.md): Remove a reaction by ID. Only the bot that added the reaction can remove it, and the bot must still be a member of the channel.
+- [Send a message](https://docs.zenzap.co/api-reference/messages/send-a-message.md): Send a message to a topic. Your API key bot will appear as the sender.
+- [Issue an OAuth access token](https://docs.zenzap.co/api-reference/oauth/issue-an-oauth-access-token.md): Exchanges OAuth client credentials for a short-lived bearer access token.
+- [Create a poll](https://docs.zenzap.co/api-reference/polls/create-a-poll.md): Create a poll in a topic. The bot must be a member of the topic.
+- [Delete a poll vote](https://docs.zenzap.co/api-reference/polls/delete-a-poll-vote.md): Retract a previously cast vote on a poll. Provide the poll ID and the vote ID returned when the vote was cast.
+- [Vote on a poll](https://docs.zenzap.co/api-reference/polls/vote-on-a-poll.md): Submit a vote on a poll on behalf of the bot. The bot must be a member of the topic the poll was posted in.
+- [Rate Limits](https://docs.zenzap.co/api-reference/rate-limits.md): API rate limiting information
+- [Setup Steps](https://docs.zenzap.co/api-reference/setup-steps.md): How to set up your Zenzap API integration
+- [Create a task](https://docs.zenzap.co/api-reference/tasks/create-a-task.md): Create a task in a topic. Tasks can be assigned to specific users and have due dates.
+- [Delete a task](https://docs.zenzap.co/api-reference/tasks/delete-a-task.md): Delete a task by ID.
+- [Get task details](https://docs.zenzap.co/api-reference/tasks/get-task-details.md): Get a single task by ID.
+- [List tasks](https://docs.zenzap.co/api-reference/tasks/list-tasks.md): List tasks visible to your bot.
+- [Update a task](https://docs.zenzap.co/api-reference/tasks/update-a-task.md): Update task fields. This endpoint supports partial updates.
+- [Add members to a topic](https://docs.zenzap.co/api-reference/topics-group-chatschannelsconversations/add-members-to-a-topic.md): Add one or more members to an existing topic.
+- [Create a topic](https://docs.zenzap.co/api-reference/topics-group-chatschannelsconversations/create-a-topic.md): Create a new topic with specified members. Your API key bot will automatically be added as a member.
+- [Get topic by external ID](https://docs.zenzap.co/api-reference/topics-group-chatschannelsconversations/get-topic-by-external-id.md): Get details of a specific topic by its external ID (set when creating the topic).
+- [Get topic details](https://docs.zenzap.co/api-reference/topics-group-chatschannelsconversations/get-topic-details.md): Get details of a specific topic including its name, description, and member IDs.
+- [Get topic messages](https://docs.zenzap.co/api-reference/topics-group-chatschannelsconversations/get-topic-messages.md): Get messages from a topic with cursor-based pagination. Messages are returned in the specified order.
+- [List topics](https://docs.zenzap.co/api-reference/topics-group-chatschannelsconversations/list-topics.md): Get a paginated list of all topics and direct messages where your API key bot is a member. Results are sorted by creation date (newest first).
+- [Remove members from a topic](https://docs.zenzap.co/api-reference/topics-group-chatschannelsconversations/remove-members-from-a-topic.md): Remove one or more members from an existing topic.
+- [Update a topic](https://docs.zenzap.co/api-reference/topics-group-chatschannelsconversations/update-a-topic.md): Update the name and/or description of a topic.
+- [Webhook Events](https://docs.zenzap.co/api-reference/webhook-events.md): Reference for webhook event payloads delivered to your endpoint
+- [Airwatch Configuration](https://docs.zenzap.co/enterprise/airwatch.md): Provision Zenzap mobile app for your organization using Airwatch (UAE)
+- [SAML Configuration](https://docs.zenzap.co/enterprise/saml.md): How to setup SAML SSO with your identity provider
+- [SAML Role Mapping](https://docs.zenzap.co/enterprise/saml-roles.md): Configure automatic role assignment via SAML assertions
+- [SCIM Configuration](https://docs.zenzap.co/enterprise/scim.md): How to setup SCIM user provisioning with your identity provider
+- [Comprehensive Zenzap FAQ](https://docs.zenzap.co/faq/faq.md)
+- [Agentic Onboarding](https://docs.zenzap.co/guides/agentic-onboarding.md): How an AI agent can programmatically create a Zenzap organization, install a bot, and invite a human — all in a single API call.
+- [Build Your Own Agent](https://docs.zenzap.co/guides/build-your-own-agent.md): A step-by-step guide to building a custom AI agent that integrates with Zenzap
+- [Polls](https://docs.zenzap.co/guides/polls.md): How to create polls and record votes programmatically using the Zenzap API.
+- [Schedule Meetings With Your Calendar](https://docs.zenzap.co/integrations/calendar.md): Connect you calendar with Zenzap to schedule meetings
+- [Google Meet](https://docs.zenzap.co/integrations/googlemeet.md): Start a Google Meet meeting from Zenzap
+- [Monday.com](https://docs.zenzap.co/integrations/monday.md): How to connect your Monday account with Zenzap
+- [OpenClaw](https://docs.zenzap.co/integrations/openclaw.md): How to connect your OpenClaw AI agent with Zenzap
+- [Microsoft Teams](https://docs.zenzap.co/integrations/teams.md): Start a Microsoft Teams meeting from Zenzap
+- [Whatsapp Chat Import](https://docs.zenzap.co/integrations/whatsapp.md): How to import a WhatsApp chat into Zenzap
+- [Zoom Integration](https://docs.zenzap.co/integrations/zoom.md): How to start a Zoom meeting from Zenzap
+- [Welcome to Zenzap](https://docs.zenzap.co/quickstart.md): Configure your zenzap system and find answers to your questions
+
+## OpenAPI Specs
+
+- [openapi](https://docs.zenzap.co/openapi.yaml)

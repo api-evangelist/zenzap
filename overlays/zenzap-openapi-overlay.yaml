@@ -1,0 +1,21 @@
+overlay: 1.0.0
+info:
+  title: API Evangelist enhancements for Zenzap External Integration API
+  version: 1.0.0
+extends: openapi/zenzap-openapi-original.yml
+actions:
+- target: $.info
+  update:
+    x-apievangelist-rating: 4
+    x-apievangelist-notes: >-
+      High-quality spec: 28 operations, all with summaries, descriptions, and
+      tags; three security schemes (OAuth2 client_credentials, HMAC API key,
+      bearer). Two data-residency hosts (EU api.zenzap.co, US api.us.zenzap.co).
+    x-data-residency:
+      EU: https://api.zenzap.co
+      US: https://api.us.zenzap.co
+- target: $.info
+  update:
+    x-webhooks: asyncapi/zenzap-webhooks.yml
+    x-conventions: conventions/zenzap-conventions.yml
+    x-error-catalog: errors/zenzap-problem-types.yml

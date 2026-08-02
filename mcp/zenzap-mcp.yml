@@ -1,0 +1,94 @@
+generated: '2026-07-21'
+method: derived
+status: candidate
+source: openapi/zenzap-openapi-original.yml
+notes: >-
+  No official hosted/remote Zenzap MCP server was found. Zenzap does document
+  agent integration (Build Your Own Agent, Agentic Onboarding, and an OpenClaw
+  AI-agent integration) but not a published MCP server. This is a candidate tool
+  list derived one-per-operation from the OpenAPI, for a future MCP wrapper.
+server:
+  name: zenzap
+  transport: http
+tools:
+- name: send_message
+  description: Send a message to a topic as the bot.
+  source_operation: openapi/zenzap-openapi-original.yml#createMessage
+- name: edit_message
+  description: Edit the text of a message the bot sent.
+  source_operation: openapi/zenzap-openapi-original.yml#patchMessage
+- name: delete_message
+  description: Delete a message the bot sent.
+  source_operation: openapi/zenzap-openapi-original.yml#deleteMessage
+- name: add_reaction
+  description: Add an emoji reaction to a message.
+  source_operation: openapi/zenzap-openapi-original.yml#addMessageReaction
+- name: remove_reaction
+  description: Remove a reaction from a message.
+  source_operation: openapi/zenzap-openapi-original.yml#deleteMessageReaction
+- name: mark_message_delivered
+  description: Mark a message as delivered by the bot.
+  source_operation: openapi/zenzap-openapi-original.yml#markMessageDelivered
+- name: mark_message_read
+  description: Mark a message as read by the bot.
+  source_operation: openapi/zenzap-openapi-original.yml#markMessageRead
+- name: get_updates
+  description: Long-poll for outbound events.
+  source_operation: openapi/zenzap-openapi-original.yml#getUpdates
+- name: list_topics
+  description: List topics and DMs the bot belongs to.
+  source_operation: openapi/zenzap-openapi-original.yml#listTopics
+- name: create_topic
+  description: Create a new topic with members.
+  source_operation: openapi/zenzap-openapi-original.yml#createTopic
+- name: get_topic
+  description: Get topic details.
+  source_operation: openapi/zenzap-openapi-original.yml#getTopic
+- name: get_topic_by_external_id
+  description: Get a topic by its external ID.
+  source_operation: openapi/zenzap-openapi-original.yml#getTopicByExternalId
+- name: update_topic
+  description: Update a topic's name or description.
+  source_operation: openapi/zenzap-openapi-original.yml#updateTopic
+- name: get_topic_messages
+  description: Fetch messages from a topic (cursor pagination).
+  source_operation: openapi/zenzap-openapi-original.yml#getTopicMessages
+- name: add_topic_members
+  description: Add members to a topic.
+  source_operation: openapi/zenzap-openapi-original.yml#addTopicMembers
+- name: remove_topic_members
+  description: Remove members from a topic.
+  source_operation: openapi/zenzap-openapi-original.yml#removeTopicMembers
+- name: list_tasks
+  description: List tasks visible to the bot.
+  source_operation: openapi/zenzap-openapi-original.yml#listTasks
+- name: create_task
+  description: Create a task in a topic.
+  source_operation: openapi/zenzap-openapi-original.yml#createTask
+- name: get_task
+  description: Get task details.
+  source_operation: openapi/zenzap-openapi-original.yml#getTask
+- name: update_task
+  description: Update task fields (partial).
+  source_operation: openapi/zenzap-openapi-original.yml#patchTask
+- name: delete_task
+  description: Delete a task.
+  source_operation: openapi/zenzap-openapi-original.yml#deleteTask
+- name: list_members
+  description: List active organization members.
+  source_operation: openapi/zenzap-openapi-original.yml#listMembers
+- name: get_current_member
+  description: Get the bot's own member record.
+  source_operation: openapi/zenzap-openapi-original.yml#getCurrentMember
+- name: create_poll
+  description: Create a poll in a topic.
+  source_operation: openapi/zenzap-openapi-original.yml#createPoll
+- name: create_poll_vote
+  description: Cast a vote on a poll.
+  source_operation: openapi/zenzap-openapi-original.yml#createPollVote
+- name: delete_poll_vote
+  description: Retract a poll vote.
+  source_operation: openapi/zenzap-openapi-original.yml#deletePollVote
+- name: create_agentic_organization
+  description: Create an organization, install a bot, and invite a user in one call.
+  source_operation: openapi/zenzap-openapi-original.yml#createAgenticOrganization

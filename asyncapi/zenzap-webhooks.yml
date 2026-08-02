@@ -1,0 +1,67 @@
+generated: '2026-07-21'
+method: searched
+source: https://docs.zenzap.co/api-reference/webhook-events
+spec_type: Webhooks
+summary: >-
+  Zenzap delivers outbound events to bots either by HTTP webhook (POST to a
+  configured URL) or by long-polling GET /v2/updates. Every event shares a
+  common envelope (id, type, eventVersion, timestamp, data). Webhook deliveries
+  are HMAC-SHA256 signed and carry X-Zenzap-* headers.
+delivery:
+  modes:
+  - webhook
+  - polling
+  polling_operation: getUpdates
+  envelope:
+    id: Unique event ID (use for deduplication)
+    type: Event type string
+    eventVersion: Schema version (currently 1)
+    timestamp: Unix timestamp in milliseconds
+    data: Event-specific payload object
+  headers:
+  - X-Zenzap-Event
+  - X-Zenzap-Signature
+  - X-Zenzap-Timestamp
+  - X-Zenzap-Delivery-Id
+  signature:
+    algorithm: HMAC-SHA256
+    signed_payload: '{timestamp}.{payload}'
+    header: X-Zenzap-Signature
+  retry:
+    max_attempts: 3
+    backoff: exponential
+    auto_pause_after: 10 consecutive failures
+events:
+- type: message.created
+  description: A new message is posted in a topic where the bot is a member.
+- type: message.updated
+  description: A message is edited, or a voice-message transcription completes.
+- type: message.deleted
+  description: A message is deleted.
+- type: reaction.added
+  description: A reaction is added to a message.
+- type: reaction.removed
+  description: A reaction is removed from a message.
+- type: member.added
+  description: A member is added to a topic.
+- type: member.removed
+  description: A member is removed from a topic.
+- type: topic.updated
+  description: A topic's name or description changes (only changed fields sent).
+- type: poll_vote.created
+  description: A user votes on a poll in a topic where the bot is a member.
+- type: poll_vote.deleted
+  description: A user removes their vote from a poll.
+message_types:
+- text
+- image
+- file
+- video
+- audio
+- location
+- task
+- contact
+notes:
+- Attachment download URLs are signed and expire after 60 minutes.
+- Voice (audio) messages are auto-transcribed; message.updated fires when done.
+- Mentions use <@profileId> tokens in text; resolved names in mentions[].

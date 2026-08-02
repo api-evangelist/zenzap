@@ -1,0 +1,70 @@
+generated: '2026-07-21'
+method: searched
+source: https://docs.zenzap.co/api-reference/getting-started
+api: openapi/zenzap-openapi-original.yml
+authentication:
+  styles:
+  - name: Static API key (HMAC-SHA256)
+    headers: [Authorization, X-Signature, X-Timestamp]
+    detail: >-
+      Authorization: Bearer {apiKey}; X-Signature is a hex HMAC-SHA256 of
+      "{timestamp}.{body}" for write methods or "{timestamp}.{uri}" for GET;
+      X-Timestamp is a Unix millisecond timestamp. Timestamps older than 5
+      minutes are rejected.
+  - name: OAuth 2.0 client_credentials
+    headers: [Authorization]
+    detail: >-
+      Exchange clientId/clientSecret at POST /oauth/token for a short-lived
+      bearer JWT (expires_in default 3600s, no refresh token). Pass as
+      Authorization: Bearer {token}; omit X-Signature/X-Timestamp.
+  reference: authentication/zenzap-authentication.yml
+idempotency:
+  supported: true
+  style: natural-key
+  detail: >-
+    Several endpoints are documented as idempotent by natural key rather than a
+    client-supplied Idempotency-Key header. Adding a reaction is idempotent per
+    {messageId, bot, reaction} (201 on create, 200 on repeat). Mark-delivered
+    and mark-read are idempotent. Each {pollId, optionId, voter} vote is
+    idempotent (resubmitting the same vote is a no-op).
+  header: null
+  idempotent_operations:
+  - addMessageReaction
+  - markMessageDelivered
+  - markMessageRead
+  - createPollVote
+pagination:
+  style: cursor
+  params: [limit, cursor]
+  detail: >-
+    List endpoints use cursor-based pagination (limit + cursor query params).
+    getTopicMessages additionally supports before/after/order/threadId filters.
+    Long-polling GET /v2/updates uses offset + limit + timeout instead.
+  response_fields: [items, nextCursor]
+versioning:
+  scheme: uri-path
+  current: v2
+  detail: All resource endpoints are under the /v2/* path prefix.
+data_residency:
+  detail: API base URL depends on the organization's data residency region.
+  hosts:
+    EU: https://api.zenzap.co
+    US: https://api.us.zenzap.co
+error_envelope:
+  api_errors:
+    format: text/plain
+    detail: >-
+      Standard 4xx/5xx responses (BadRequest, Unauthorized, Forbidden, Conflict,
+      NotFound, InternalServerError) return a plain-text body, not RFC 9457
+      problem+json.
+  oauth_errors:
+    format: RFC 6749 section 5.2
+    fields: [error, error_description]
+  reference: errors/zenzap-problem-types.yml
+rate_limiting:
+  detail: 1,000 requests per API key per 60-second window; 429 on exceed.
+  signal: 429 Too Many Requests
+  reference: rate-limits
+request_tracing:
+  webhook_delivery_id: X-Zenzap-Delivery-Id
+  event_id: Each webhook/update event carries a unique id for deduplication.

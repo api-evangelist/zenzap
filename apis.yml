@@ -30,7 +30,7 @@ accessModel:
   - authentication
   generated: '2026-07-22'
   method: derived
-specificationVersion: '0.20'
+specificationVersion: '0.23'
 created: '2026-07-17'
 modified: '2026-07-21'
 image: https://cdn.prod.website-files.com/6559c53afcb17d5a5995bfc0/683d76d5c705aada2bab4c9e_Open%20graph%20visual.png

@@ -1,0 +1,265 @@
+{
+  "opencollection": "1.0.0",
+  "info": {
+    "name": "Zenzap External Integration Agentic Messages API",
+    "version": "2.0.0"
+  },
+  "request": {
+    "auth": {
+      "type": "bearer",
+      "token": "{{bearerToken}}"
+    }
+  },
+  "items": [
+    {
+      "info": {
+        "name": "Messages",
+        "type": "folder"
+      },
+      "items": [
+        {
+          "info": {
+            "name": "Send a message",
+            "type": "http"
+          },
+          "http": {
+            "method": "POST",
+            "url": "https://api.zenzap.co/v2/messages",
+            "headers": [
+              {
+                "name": "X-Signature",
+                "value": ""
+              },
+              {
+                "name": "X-Timestamp",
+                "value": ""
+              }
+            ],
+            "body": {
+              "type": "json",
+              "data": "{}"
+            },
+            "auth": {
+              "type": "bearer",
+              "token": "{{bearerToken}}"
+            }
+          },
+          "docs": "Send a message to a topic. Your API key bot will appear as the sender.\n\nSupported request modes:\n- `application/json` for text messages\n- `multipart/form-data` for file/image messages\n\nMentions:\n- Mention members directly in `text` using `<@profileId>`\n- Example: `Hello <@550e8400-e29b-41d4-a716-446655440001>`\n- Mentioned profiles must be members of the topic\n\nLimits:\n- message length is limited to 10000 characters\n"
+        },
+        {
+          "info": {
+            "name": "Edit a message",
+            "type": "http"
+          },
+          "http": {
+            "method": "PATCH",
+            "url": "https://api.zenzap.co/v2/messages/:messageId",
+            "headers": [
+              {
+                "name": "X-Signature",
+                "value": ""
+              },
+              {
+                "name": "X-Timestamp",
+                "value": ""
+              }
+            ],
+            "params": [
+              {
+                "name": "messageId",
+                "value": "660e8400-e29b-41d4-a716-446655440001",
+                "type": "path",
+                "description": "The message ID to edit"
+              }
+            ],
+            "body": {
+              "type": "json",
+              "data": "{}"
+            },
+            "auth": {
+              "type": "bearer",
+              "token": "{{bearerToken}}"
+            }
+          },
+          "docs": "Edit the text of a message. Only the bot that sent the message can edit it, and the bot must still be a member of the channel.\n\nNotes:\n- `text` is required and cannot be empty\n- Message length is limited to 10000 characters\n- Edited messages will have an `Edited` property marker applied\n"
+        },
+        {
+          "info": {
+            "name": "Delete a message",
+            "type": "http"
+          },
+          "http": {
+            "method": "DELETE",
+            "url": "https://api.zenzap.co/v2/messages/:messageId",
+            "headers": [
+              {
+                "name": "X-Signature",
+                "value": ""
+              },
+              {
+                "name": "X-Timestamp",
+                "value": ""
+              }
+            ],
+            "params": [
+              {
+                "name": "messageId",
+                "value": "660e8400-e29b-41d4-a716-446655440001",
+                "type": "path",
+                "description": "The message ID to delete"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "token": "{{bearerToken}}"
+            }
+          },
+          "docs": "Delete a message by ID. Only the bot that sent the message can delete it.\n"
+        },
+        {
+          "info": {
+            "name": "Add a reaction to a message",
+            "type": "http"
+          },
+          "http": {
+            "method": "POST",
+            "url": "https://api.zenzap.co/v2/messages/:messageId/reactions",
+            "headers": [
+              {
+                "name": "X-Signature",
+                "value": ""
+              },
+              {
+                "name": "X-Timestamp",
+                "value": ""
+              }
+            ],
+            "params": [
+              {
+                "name": "messageId",
+                "value": "660e8400-e29b-41d4-a716-446655440001",
+                "type": "path",
+                "description": "The message ID to react to"
+              }
+            ],
+            "body": {
+              "type": "json",
+              "data": "{}"
+            },
+            "auth": {
+              "type": "bearer",
+              "token": "{{bearerToken}}"
+            }
+          },
+          "docs": "Add an emoji reaction to a message. The bot must be a member of the channel.\n\nThis endpoint is idempotent per `{messageId, bot, reaction}`:\n- Returns `201` when a new reaction is created\n- Returns `200` when the same reaction already exists for this bot\n"
+        },
+        {
+          "info": {
+            "name": "Remove a reaction from a message",
+            "type": "http"
+          },
+          "http": {
+            "method": "DELETE",
+            "url": "https://api.zenzap.co/v2/messages/:messageId/reactions/:reactionId",
+            "headers": [
+              {
+                "name": "X-Signature",
+                "value": ""
+              },
+              {
+                "name": "X-Timestamp",
+                "value": ""
+              }
+            ],
+            "params": [
+              {
+                "name": "messageId",
+                "value": "660e8400-e29b-41d4-a716-446655440001",
+                "type": "path",
+                "description": "The message ID the reaction belongs to"
+              },
+              {
+                "name": "reactionId",
+                "value": "990e8400-e29b-41d4-a716-446655440005",
+                "type": "path",
+                "description": "The reaction ID to remove"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "token": "{{bearerToken}}"
+            }
+          },
+          "docs": "Remove a reaction by ID. Only the bot that added the reaction can remove it, and the bot must still be a member of the channel.\n\nThe `messageId` in the path must match the message the reaction belongs to.\n"
+        },
+        {
+          "info": {
+            "name": "Mark a message as delivered",
+            "type": "http"
+          },
+          "http": {
+            "method": "POST",
+            "url": "https://api.zenzap.co/v2/messages/:messageId/delivered",
+            "headers": [
+              {
+                "name": "X-Signature",
+                "value": ""
+              },
+              {
+                "name": "X-Timestamp",
+                "value": ""
+              }
+            ],
+            "params": [
+              {
+                "name": "messageId",
+                "value": "660e8400-e29b-41d4-a716-446655440001",
+                "type": "path",
+                "description": "The message ID to mark as delivered"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "token": "{{bearerToken}}"
+            }
+          },
+          "docs": "Mark a message as delivered by the current bot.\n\nThis endpoint is idempotent. If the message has not been fully persisted yet,\ndelivery status is queued and applied when it becomes available.\n"
+        },
+        {
+          "info": {
+            "name": "Mark a message as read",
+            "type": "http"
+          },
+          "http": {
+            "method": "POST",
+            "url": "https://api.zenzap.co/v2/messages/:messageId/read",
+            "headers": [
+              {
+                "name": "X-Signature",
+                "value": ""
+              },
+              {
+                "name": "X-Timestamp",
+                "value": ""
+              }
+            ],
+            "params": [
+              {
+                "name": "messageId",
+                "value": "660e8400-e29b-41d4-a716-446655440001",
+                "type": "path",
+                "description": "The message ID to mark as read"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "token": "{{bearerToken}}"
+            }
+          },
+          "docs": "Mark a message as read by the current bot.\n\nThis endpoint is idempotent. If the message has not been fully persisted yet,\nread status is queued and applied when it becomes available.\n"
+        }
+      ]
+    }
+  ],
+  "bundled": true
+}

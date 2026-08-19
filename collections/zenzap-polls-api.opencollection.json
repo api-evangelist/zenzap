@@ -1,0 +1,129 @@
+{
+  "opencollection": "1.0.0",
+  "info": {
+    "name": "Zenzap External Integration Agentic Polls API",
+    "version": "2.0.0"
+  },
+  "request": {
+    "auth": {
+      "type": "bearer",
+      "token": "{{bearerToken}}"
+    }
+  },
+  "items": [
+    {
+      "info": {
+        "name": "Polls",
+        "type": "folder"
+      },
+      "items": [
+        {
+          "info": {
+            "name": "Create a poll",
+            "type": "http"
+          },
+          "http": {
+            "method": "POST",
+            "url": "https://api.zenzap.co/v2/polls",
+            "headers": [
+              {
+                "name": "X-Signature",
+                "value": ""
+              },
+              {
+                "name": "X-Timestamp",
+                "value": ""
+              }
+            ],
+            "body": {
+              "type": "json",
+              "data": "{}"
+            },
+            "auth": {
+              "type": "bearer",
+              "token": "{{bearerToken}}"
+            }
+          },
+          "docs": "Create a poll in a topic. The bot must be a member of the topic.\n\nPolls are sent as messages. Each option text is stored server-side with a\nserver-generated 6-character ID — use those IDs when submitting votes.\n\n**Anonymous polls** (`anonymous: true`) do not support voting via the API.\n"
+        },
+        {
+          "info": {
+            "name": "Vote on a poll",
+            "type": "http"
+          },
+          "http": {
+            "method": "POST",
+            "url": "https://api.zenzap.co/v2/polls/:pollId/votes",
+            "headers": [
+              {
+                "name": "X-Signature",
+                "value": ""
+              },
+              {
+                "name": "X-Timestamp",
+                "value": ""
+              }
+            ],
+            "params": [
+              {
+                "name": "pollId",
+                "value": "770e8400-e29b-41d4-a716-446655440099",
+                "type": "path",
+                "description": "The poll ID (returned as `id` in the create poll response)"
+              }
+            ],
+            "body": {
+              "type": "json",
+              "data": "{}"
+            },
+            "auth": {
+              "type": "bearer",
+              "token": "{{bearerToken}}"
+            }
+          },
+          "docs": "Submit a vote on a poll on behalf of the bot. The bot must be a member of the topic the poll was posted in.\n\nUse the `id` values from the `options` array in the `POST /v2/polls` response as the `optionId`.\n\n**Constraints:**\n- Anonymous polls do not support voting via the API\n- Votes cannot be cast on closed or expired polls\n- Each `{pollId, optionId, voter}` combination is idempotent — re-submitting the same vote is a no-op\n"
+        },
+        {
+          "info": {
+            "name": "Delete a poll vote",
+            "type": "http"
+          },
+          "http": {
+            "method": "DELETE",
+            "url": "https://api.zenzap.co/v2/polls/:pollId/votes/:voteId",
+            "headers": [
+              {
+                "name": "X-Signature",
+                "value": ""
+              },
+              {
+                "name": "X-Timestamp",
+                "value": ""
+              }
+            ],
+            "params": [
+              {
+                "name": "pollId",
+                "value": "770e8400-e29b-41d4-a716-446655440099",
+                "type": "path",
+                "description": "The poll ID (returned as `id` in the create poll response)"
+              },
+              {
+                "name": "voteId",
+                "value": "770e8400-e29b-41d4-a716-446655440099_a1b2c3_b@f951b968-bf80-4ee6-bbbe-6ca338f57fc6",
+                "type": "path",
+                "description": "The vote ID (returned as `id` in the create vote response)"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "token": "{{bearerToken}}"
+            }
+          },
+          "docs": "Retract a previously cast vote on a poll. Provide the poll ID and the vote ID returned when the vote was cast.\n"
+        }
+      ]
+    }
+  ],
+  "bundled": true
+}

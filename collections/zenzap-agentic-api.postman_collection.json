@@ -1,0 +1,303 @@
+{
+  "item": [
+    {
+      "id": "307383fe-42c2-488d-b727-8fd6bb84685d",
+      "name": "Agentic",
+      "description": {
+        "content": "Endpoints for AI agents to programmatically set up Zenzap organizations.\n\nUse `POST /v2/agentic/organization/create` to create an organization, install a bot, and invite a human user in a single request — no authentication required.\n",
+        "type": "text/plain"
+      },
+      "item": [
+        {
+          "id": "eb42fbca-bd41-4fc6-8cdd-9d280877f5f1",
+          "name": "Create organization",
+          "request": {
+            "name": "Create organization",
+            "description": {
+              "content": "Allows an external AI agent to programmatically create a Zenzap organization,\ninstall a bot (the agent itself), and invite a human user — all in a single request.\n\n**Authentication:** None required. This endpoint is publicly accessible.\n\n**Rate limit:** 1 request per minute per IP.\n\nSupports two content types:\n- `application/json` — for requests without a logo\n- `multipart/form-data` — for requests that include a company logo (`filePart`)\n\nOnce you receive the `201` response, use the returned `credentials` to authenticate\nall subsequent API calls. See [Authentication](/api-reference/authentication) for details.\n",
+              "type": "text/plain"
+            },
+            "url": {
+              "path": [
+                "v2",
+                "agentic",
+                "organization",
+                "create"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "multipart/form-data"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "auth": null,
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "filePart",
+                  "type": "file",
+                  "description": "Company logo image. Max 5 MB. Optional."
+                },
+                {
+                  "key": "metadata",
+                  "value": "{\"companyName\":\"<string>\",\"humanEmail\":\"<email>\",\"companySize\":\"<integer>\",\"industry\":\"<string>\",\"botName\":\"<string>\"}",
+                  "type": "text",
+                  "contentType": "application/json",
+                  "description": ""
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "id": "e44bbf33-1029-4e95-b164-587fb4801b90",
+              "name": "Organization created successfully",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    "v2",
+                    "agentic",
+                    "organization",
+                    "create"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: bearer",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "Bearer <token>"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "description": {
+                        "content": "Company logo image. Max 5 MB. Optional.",
+                        "type": "text/plain"
+                      },
+                      "key": "filePart",
+                      "value": "<binary>",
+                      "type": "text"
+                    },
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "key": "metadata",
+                      "value": "{\"companyName\":\"Acme Corp\",\"humanEmail\":\"founder@acme.com\",\"companySize\":50,\"industry\":\"Software\",\"botName\":\"Acme Assistant\"}",
+                      "type": "text",
+                      "contentType": "application/json"
+                    }
+                  ]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"organizationId\": \"067d0b2f-1ee8-49f2-bb09-e2d964c8cf6b\",\n  \"botProfileId\": \"b@f951b968-bf80-4ee6-bbbe-6ca338f57fc6\",\n  \"channelId\": \"1b383aef-15c2-44e2-b599-d1d40a8b286c\",\n  \"humanProfileId\": \"a3c2e1d0-9f8b-4e7a-b6c5-d4e3f2a1b0c9\",\n  \"credentials\": [\n    {\n      \"label\": \"API Key\",\n      \"value\": \"utxDAedgfFXglaLX\"\n    },\n    {\n      \"label\": \"API Secret\",\n      \"value\": \"66AybzV7s0afLeKKqpxC7wLKCTk5d7bT\"\n    },\n    {\n      \"label\": \"Control Topic ID\",\n      \"value\": \"1b383aef-15c2-44e2-b599-d1d40a8b286c\"\n    }\n  ]\n}",
+              "cookie": [],
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "id": "3841c75f-c55d-43b8-8fb7-d31bf891a421",
+              "name": "Validation error",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    "v2",
+                    "agentic",
+                    "organization",
+                    "create"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: bearer",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "Bearer <token>"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "description": {
+                        "content": "Company logo image. Max 5 MB. Optional.",
+                        "type": "text/plain"
+                      },
+                      "key": "filePart",
+                      "value": "<binary>",
+                      "type": "text"
+                    },
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "key": "metadata",
+                      "value": "{\"companyName\":\"Acme Corp\",\"humanEmail\":\"founder@acme.com\",\"companySize\":50,\"industry\":\"Software\",\"botName\":\"Acme Assistant\"}",
+                      "type": "text",
+                      "contentType": "application/json"
+                    }
+                  ]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"message\": \"companyName is required\"\n}",
+              "cookie": [],
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "id": "d4980ead-6920-4e53-ae43-a0a2e8eba467",
+              "name": "Rate limit exceeded (1 request per minute per IP)",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    "v2",
+                    "agentic",
+                    "organization",
+                    "create"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: bearer",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "Bearer <token>"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "description": {
+                        "content": "Company logo image. Max 5 MB. Optional.",
+                        "type": "text/plain"
+                      },
+                      "key": "filePart",
+                      "value": "<binary>",
+                      "type": "text"
+                    },
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "key": "metadata",
+                      "value": "{\"companyName\":\"Acme Corp\",\"humanEmail\":\"founder@acme.com\",\"companySize\":50,\"industry\":\"Software\",\"botName\":\"Acme Assistant\"}",
+                      "type": "text",
+                      "contentType": "application/json"
+                    }
+                  ]
+                }
+              },
+              "status": "Too Many Requests",
+              "code": 429,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "text/plain"
+                }
+              ],
+              "body": "",
+              "cookie": [],
+              "_postman_previewlanguage": "text"
+            }
+          ],
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        }
+      ],
+      "event": []
+    }
+  ],
+  "event": [],
+  "variable": [
+    {
+      "type": "string",
+      "value": "https://api.zenzap.co",
+      "key": "baseUrl"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{bearerToken}}"
+      }
+    ]
+  },
+  "info": {
+    "_postman_id": "4c7f7765-edff-4b92-88ef-05bdfee4cb9e",
+    "name": "Zenzap External Integration Agentic API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": {
+      "content": "API for external applications to integrate with Zenzap.\n## Getting Started\nWelcome to the Zenzap External Integration API documentation. This API is used to integrate with Zenzap.\nAs a context we would like to familiarize you with the Zenzap platform and how it works.\nZenzap is a platform for creating and managing topics and messages.\nTopics (Zenzap term for group chats/channels/conversations) are used to create and manage conversations with your team. Topics are used to group messages and tasks together.\nMessages are used to send and receive messages with your team.\nTasks are used to create and manage tasks with your team.\nMembers are used to manage your team members.\nAPI keys are used to authenticate your requests to the Zenzap API.\nAPI keys are created and managed by the Zenzap admin user.\n\nWhen you create a new API key, it would create a new bot user in Zenzap, on which behalf you can send messages, create topics, create tasks and manage members.\nAll actions you perform with the API key will be performed on behalf of the bot user.\nThe bot can be used within the scope of your organization. You can create topics, send messages, create tasks and manage members on behalf of the bot.\n1. On a Zenzap admin user, go to https://app.zenzap.co/console\n2. Create a new API key with the needed permissions\n3. Copy the API key and secret from the API key settings\n4. For each request:\n   - Add the Authorization header with your API key\n   - Generate a Unix timestamp in milliseconds\n   - Calculate the HMAC-SHA256 signature:\n     - For POST/PUT/PATCH/DELETE: Sign `{timestamp}.{body}`\n     - For GET: Sign `{timestamp}.{uri}` (e.g., `/v2/members?limit=10`)\n   - Add the X-Signature header with the hex-encoded signature\n   - Add the X-Timestamp header with the timestamp used in the payload\n\n## Authentication\nAll API endpoints require two forms of authentication:\n\n1. **Bearer Token**: Include your API key in the Authorization header:\n```\nAuthorization: Bearer YOUR_API_KEY\n```\n\n2. **Request Signing**: Include an HMAC signature and timestamp in headers:\n```\nX-Signature: <HMAC-SHA256 hex-encoded signature>\nX-Timestamp: <Unix timestamp in milliseconds>\n```\nThe signature includes a timestamp for replay protection. Requests older than 5 minutes are rejected.\n\nThe signature payload differs by HTTP method:\n- **POST/PUT/PATCH/DELETE requests**: Sign `{timestamp}.{body}`\n- **GET requests**: Sign `{timestamp}.{uri}`\n\nThe signature is calculated using HMAC-SHA256 with your API secret.\n\n  **How to calculate:**\n  1. Get the current Unix timestamp in milliseconds\n  2. Determine the payload:\n      - **POST/PUT/PATCH/DELETE**: Use `{timestamp}.{body}` (e.g., `1699564800000.{\"topicId\":\"123\"}`)\n      - **GET**: Use `{timestamp}.{uri}` (e.g., `1699564800000./v2/members?limit=10`)\n  3. Calculate HMAC-SHA256 of the payload using your API secret\n  4. Hex-encode the result (64 character lowercase string)\n  5. Include timestamp in X-Timestamp header\n\n  **Example (Python):**\n  ```python\n  import json\n  import hmac\n  import hashlib\n  import time\n  import requests\n\n  def create_topic(name: str, members: list[str], description: str = None, external_id: str = None) -> dict:\n      \"\"\"Create a topic in Zenzap with HMAC signature and replay protection.\"\"\"\n\n      # Build request body\n      body = {\n          \"name\": name,\n          \"members\": members,\n      }\n      if description:\n          body[\"description\"] = description\n      if external_id:\n          body[\"externalId\"] = external_id\n\n      # Serialize body (no spaces for consistent signing)\n      body_json = json.dumps(body, separators=(\",\", \":\"))\n\n      # Get timestamp for replay protection\n      timestamp = int(time.time() * 1000)  # Unix milliseconds\n\n      # Create HMAC-SHA256 signature with timestamp\n      signature_payload = f\"{timestamp}.{body_json}\"\n      signature = hmac.new(\n          API_SECRET.encode(),\n          signature_payload.encode(),\n          hashlib.sha256\n      ).hexdigest()\n\n      # Make request\n      headers = {\n          \"Authorization\": f\"Bearer {API_KEY}\",\n          \"Content-Type\": \"application/json\",\n          \"X-Signature\": signature,\n          \"X-Timestamp\": str(timestamp),\n      }\n\n      response = requests.post(f\"{BASE_URL}/v2/topics\", headers=headers, data=body_json)\n      response.raise_for_status()\n      return response.json()\n  ```\n\n  **Note:** Our API documentation tools cannot automatically generate HMAC signatures. You will need to calculate this manually or use a tool like Postman with pre-request scripts.\n\n\n## Rate Limits\nAPI requests are rate limited per organization. Contact support for specific limits.\n\n\nContact Support:\n Name: Zenzap Support",
+      "type": "text/plain"
+    }
+  }
+}

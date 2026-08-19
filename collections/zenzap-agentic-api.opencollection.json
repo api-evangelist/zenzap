@@ -1,0 +1,39 @@
+{
+  "opencollection": "1.0.0",
+  "info": {
+    "name": "Zenzap External Integration Agentic API",
+    "version": "2.0.0"
+  },
+  "request": {
+    "auth": {
+      "type": "bearer",
+      "token": "{{bearerToken}}"
+    }
+  },
+  "items": [
+    {
+      "info": {
+        "name": "Agentic",
+        "type": "folder"
+      },
+      "items": [
+        {
+          "info": {
+            "name": "Create organization",
+            "type": "http"
+          },
+          "http": {
+            "method": "POST",
+            "url": "https://api.zenzap.co/v2/agentic/organization/create",
+            "body": {
+              "type": "json",
+              "data": "{}"
+            }
+          },
+          "docs": "Allows an external AI agent to programmatically create a Zenzap organization,\ninstall a bot (the agent itself), and invite a human user — all in a single request.\n\n**Authentication:** None required. This endpoint is publicly accessible.\n\n**Rate limit:** 1 request per minute per IP.\n\nSupports two content types:\n- `application/json` — for requests without a logo\n- `multipart/form-data` — for requests that include a company logo (`filePart`)\n\nOnce you receive the `201` response, use the returned `c"
+        }
+      ]
+    }
+  ],
+  "bundled": true
+}

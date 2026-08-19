@@ -1,0 +1,356 @@
+{
+  "opencollection": "1.0.0",
+  "info": {
+    "name": "Zenzap External Integration Agentic Topics (group chats/channels/conversations) API",
+    "version": "2.0.0"
+  },
+  "request": {
+    "auth": {
+      "type": "bearer",
+      "token": "{{bearerToken}}"
+    }
+  },
+  "items": [
+    {
+      "info": {
+        "name": "Topics (group chats/channels/conversations)",
+        "type": "folder"
+      },
+      "items": [
+        {
+          "info": {
+            "name": "List topics",
+            "type": "http"
+          },
+          "http": {
+            "method": "GET",
+            "url": "https://api.zenzap.co/v2/topics",
+            "headers": [
+              {
+                "name": "X-Signature",
+                "value": ""
+              },
+              {
+                "name": "X-Timestamp",
+                "value": ""
+              }
+            ],
+            "params": [
+              {
+                "name": "limit",
+                "value": "",
+                "type": "query",
+                "description": "Maximum number of topics to return (default: 50, max: 100)"
+              },
+              {
+                "name": "cursor",
+                "value": "",
+                "type": "query",
+                "description": "Opaque cursor from a previous `nextCursor` value."
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "token": "{{bearerToken}}"
+            }
+          },
+          "docs": "Get a paginated list of all topics and direct messages where your API key bot is a member.\nResults are sorted by creation date (newest first).\n\nPagination:\n- `limit`: default `50`, max `100`\n- `cursor`: opaque cursor from the previous response (`nextCursor`)\n"
+        },
+        {
+          "info": {
+            "name": "Create a topic",
+            "type": "http"
+          },
+          "http": {
+            "method": "POST",
+            "url": "https://api.zenzap.co/v2/topics",
+            "headers": [
+              {
+                "name": "X-Signature",
+                "value": ""
+              },
+              {
+                "name": "X-Timestamp",
+                "value": ""
+              }
+            ],
+            "body": {
+              "type": "json",
+              "data": "{}"
+            },
+            "auth": {
+              "type": "bearer",
+              "token": "{{bearerToken}}"
+            }
+          },
+          "docs": "Create a new topic with specified members. Your API key bot will automatically be added as a member.\n\nLimits:\n- topic name is limited to 64 characters\n- topic description is limited to 10000 characters\n- maximum 100 members per topic\n- you can only add members that are already in your organization\n- topic externalId is limited to 100 characters\n- externalId must be unique per bot - you cannot create multiple topics with the same externalId\n"
+        },
+        {
+          "info": {
+            "name": "Get topic by external ID",
+            "type": "http"
+          },
+          "http": {
+            "method": "GET",
+            "url": "https://api.zenzap.co/v2/topics/external/:externalId",
+            "headers": [
+              {
+                "name": "X-Signature",
+                "value": ""
+              },
+              {
+                "name": "X-Timestamp",
+                "value": ""
+              }
+            ],
+            "params": [
+              {
+                "name": "externalId",
+                "value": "project-alpha",
+                "type": "path",
+                "description": "The external ID of the topic to retrieve"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "token": "{{bearerToken}}"
+            }
+          },
+          "docs": "Get details of a specific topic by its external ID (set when creating the topic).\n\n**Authorization:** Your API key bot must be a member of the topic to access its details.\n\n**Note:** For security reasons, a 404 response is returned both when the topic does not exist\nand when your bot is not a member of the topic.\n\n## Deep linking to topics\n\nYou can open Zenzap directly to a topic using its external ID by adding a query parameter to the Zenzap app URL.\n\n| Component | Value |\n|-----------|-------|"
+        },
+        {
+          "info": {
+            "name": "Get topic details",
+            "type": "http"
+          },
+          "http": {
+            "method": "GET",
+            "url": "https://api.zenzap.co/v2/topics/:topicId",
+            "headers": [
+              {
+                "name": "X-Signature",
+                "value": ""
+              },
+              {
+                "name": "X-Timestamp",
+                "value": ""
+              }
+            ],
+            "params": [
+              {
+                "name": "topicId",
+                "value": "550e8400-e29b-41d4-a716-446655440000",
+                "type": "path",
+                "description": "The ID of the topic to retrieve"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "token": "{{bearerToken}}"
+            }
+          },
+          "docs": "Get details of a specific topic including its name, description, and member IDs.\n\n**Authorization:** Your API key bot must be a member of the topic to access its details.\n\n**Note:** For security reasons, a 404 response is returned both when the topic does not exist\nand when your bot is not a member of the topic.\n"
+        },
+        {
+          "info": {
+            "name": "Update a topic",
+            "type": "http"
+          },
+          "http": {
+            "method": "PATCH",
+            "url": "https://api.zenzap.co/v2/topics/:topicId",
+            "headers": [
+              {
+                "name": "X-Signature",
+                "value": ""
+              },
+              {
+                "name": "X-Timestamp",
+                "value": ""
+              }
+            ],
+            "params": [
+              {
+                "name": "topicId",
+                "value": "550e8400-e29b-41d4-a716-446655440000",
+                "type": "path",
+                "description": "The ID of the topic to update"
+              }
+            ],
+            "body": {
+              "type": "json",
+              "data": "{}"
+            },
+            "auth": {
+              "type": "bearer",
+              "token": "{{bearerToken}}"
+            }
+          },
+          "docs": "Update the name and/or description of a topic.\n\n**Authorization:** Your API key bot must be a member of the topic to update it.\n\n**Validation:** At least one of `name` or `description` must be provided.\n\n**Note:** For security reasons, a 404 response is returned both when the topic does not exist\nand when your bot is not a member of the topic.\n\nLimits:\n- topic name is limited to 64 characters\n- topic description is limited to 10000 characters\n"
+        },
+        {
+          "info": {
+            "name": "Get topic messages",
+            "type": "http"
+          },
+          "http": {
+            "method": "GET",
+            "url": "https://api.zenzap.co/v2/topics/:topicId/messages",
+            "headers": [
+              {
+                "name": "X-Signature",
+                "value": ""
+              },
+              {
+                "name": "X-Timestamp",
+                "value": ""
+              }
+            ],
+            "params": [
+              {
+                "name": "topicId",
+                "value": "550e8400-e29b-41d4-a716-446655440000",
+                "type": "path",
+                "description": "The ID of the topic to get messages from"
+              },
+              {
+                "name": "limit",
+                "value": "",
+                "type": "query",
+                "description": "Maximum number of messages to return (default: 50, max: 100)"
+              },
+              {
+                "name": "cursor",
+                "value": "",
+                "type": "query",
+                "description": "Opaque cursor for pagination. Use the value from `nextCursor` in the response. Cursors are cryptographically signed and validated server-side to prevent tampering."
+              },
+              {
+                "name": "before",
+                "value": "",
+                "type": "query",
+                "description": "Return messages created before this timestamp (Unix milliseconds). Mutually exclusive with `after`."
+              },
+              {
+                "name": "after",
+                "value": "",
+                "type": "query",
+                "description": "Return messages created after this timestamp (Unix milliseconds). Mutually exclusive with `before`."
+              },
+              {
+                "name": "senderId",
+                "value": "",
+                "type": "query",
+                "description": "Filter messages by sender ID"
+              },
+              {
+                "name": "order",
+                "value": "",
+                "type": "query",
+                "description": "Sort order for messages (default: desc - newest first)"
+              },
+              {
+                "name": "includeSystem",
+                "value": "",
+                "type": "query",
+                "description": "Include system messages (default: true)"
+              },
+              {
+                "name": "threadId",
+                "value": "",
+                "type": "query",
+                "description": "Filter to messages within a specific thread (replies to a parent message)"
+              },
+              {
+                "name": "includeReactionUsers",
+                "value": "",
+                "type": "query",
+                "description": "Include user IDs in reaction data (default: false, heavier payload)"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "token": "{{bearerToken}}"
+            }
+          },
+          "docs": "Get messages from a topic with cursor-based pagination. Messages are returned in the specified order.\n\n**Authorization:** Your API key bot must be a member of the topic to access its messages.\n\n**Pagination:** Use the `cursor` parameter with the value from `nextCursor` in the response to get the next page.\nThe `before` and `after` parameters are mutually exclusive - use one or the other, not both.\n\n**Note:** For security reasons, a 404 response is returned both when the topic does not exist\nand "
+        },
+        {
+          "info": {
+            "name": "Add members to a topic",
+            "type": "http"
+          },
+          "http": {
+            "method": "POST",
+            "url": "https://api.zenzap.co/v2/topics/:topicId/members",
+            "headers": [
+              {
+                "name": "X-Signature",
+                "value": ""
+              },
+              {
+                "name": "X-Timestamp",
+                "value": ""
+              }
+            ],
+            "params": [
+              {
+                "name": "topicId",
+                "value": "550e8400-e29b-41d4-a716-446655440000",
+                "type": "path",
+                "description": "The ID of the topic to add members to"
+              }
+            ],
+            "body": {
+              "type": "json",
+              "data": "{}"
+            },
+            "auth": {
+              "type": "bearer",
+              "token": "{{bearerToken}}"
+            }
+          },
+          "docs": "Add one or more members to an existing topic.\n\n**Authorization:** Your API key bot must be a member of the topic (returns 404 if not).\n\n**Validation:**\n- All members being added must exist and be from the same organization as the bot (returns 400 \"Invalid member\" if not)\n- Members already in the topic will result in a 400 error\n\n**Limits:** Maximum 5 members per request. Duplicate member IDs in the request are automatically removed. For adding many members, create the topic with all members upfr"
+        },
+        {
+          "info": {
+            "name": "Remove members from a topic",
+            "type": "http"
+          },
+          "http": {
+            "method": "DELETE",
+            "url": "https://api.zenzap.co/v2/topics/:topicId/members",
+            "headers": [
+              {
+                "name": "X-Signature",
+                "value": ""
+              },
+              {
+                "name": "X-Timestamp",
+                "value": ""
+              }
+            ],
+            "params": [
+              {
+                "name": "topicId",
+                "value": "550e8400-e29b-41d4-a716-446655440000",
+                "type": "path",
+                "description": "The ID of the topic to remove members from"
+              }
+            ],
+            "body": {
+              "type": "json",
+              "data": "{}"
+            },
+            "auth": {
+              "type": "bearer",
+              "token": "{{bearerToken}}"
+            }
+          },
+          "docs": "Remove one or more members from an existing topic.\n\n**Authorization:** Your API key bot must be a member of the topic (returns 404 if not).\n\n**Behavior:** Members not currently in the topic are silently ignored. If none of the provided members are in the topic, no removal occurs and the current topic state is returned.\n\n**Limits:** Maximum 5 members per request. Duplicate member IDs are automatically removed.\n\n**Note:** The bot can remove itself from the topic if needed.\n"
+        }
+      ]
+    }
+  ],
+  "bundled": true
+}

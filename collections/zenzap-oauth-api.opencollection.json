@@ -1,0 +1,39 @@
+{
+  "opencollection": "1.0.0",
+  "info": {
+    "name": "Zenzap External Integration Agentic OAuth API",
+    "version": "2.0.0"
+  },
+  "request": {
+    "auth": {
+      "type": "bearer",
+      "token": "{{bearerToken}}"
+    }
+  },
+  "items": [
+    {
+      "info": {
+        "name": "OAuth",
+        "type": "folder"
+      },
+      "items": [
+        {
+          "info": {
+            "name": "Issue an OAuth access token",
+            "type": "http"
+          },
+          "http": {
+            "method": "POST",
+            "url": "https://api.zenzap.co/oauth/token",
+            "body": {
+              "type": "form-urlencoded",
+              "data": []
+            }
+          },
+          "docs": "Exchanges OAuth client credentials for a short-lived bearer access token.\n\nOnly the **`client_credentials`** grant is supported on this endpoint. Use the `clientId` and `clientSecret` returned when the bot was created (or rotated) in your Zenzap admin console.\n\n**Client authentication**: either send `client_id` + `client_secret` in the form body, or use HTTP Basic Auth with the same values (`Authorization: Basic base64(clientId:clientSecret)`).\n\n**Scopes**: omit the `scope` field to receive a to"
+        }
+      ]
+    }
+  ],
+  "bundled": true
+}

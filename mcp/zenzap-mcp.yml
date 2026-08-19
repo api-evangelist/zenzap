@@ -2,11 +2,9 @@ generated: '2026-07-21'
 method: derived
 status: candidate
 source: openapi/zenzap-openapi-original.yml
-notes: >-
-  No official hosted/remote Zenzap MCP server was found. Zenzap does document
-  agent integration (Build Your Own Agent, Agentic Onboarding, and an OpenClaw
-  AI-agent integration) but not a published MCP server. This is a candidate tool
-  list derived one-per-operation from the OpenAPI, for a future MCP wrapper.
+notes: No official hosted/remote Zenzap MCP server was found. Zenzap does document agent integration (Build
+  Your Own Agent, Agentic Onboarding, and an OpenClaw AI-agent integration) but not a published MCP server.
+  This is a candidate tool list derived one-per-operation from the OpenAPI, for a future MCP wrapper.
 server:
   name: zenzap
   transport: http
@@ -92,3 +90,9 @@ tools:
 - name: create_agentic_organization
   description: Create an organization, install a bot, and invite a user in one call.
   source_operation: openapi/zenzap-openapi-original.yml#createAgenticOrganization
+deployment:
+  mode: none
+  verified: derived
+  tools: 27
+  checked: '2026-08-12'
+  source: catalog MCP census

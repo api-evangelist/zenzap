@@ -1,0 +1,69 @@
+{
+  "opencollection": "1.0.0",
+  "info": {
+    "name": "Zenzap External Integration Agentic Long Polling API",
+    "version": "2.0.0"
+  },
+  "request": {
+    "auth": {
+      "type": "bearer",
+      "token": "{{bearerToken}}"
+    }
+  },
+  "items": [
+    {
+      "info": {
+        "name": "Long Polling",
+        "type": "folder"
+      },
+      "items": [
+        {
+          "info": {
+            "name": "Get updates (long polling)",
+            "type": "http"
+          },
+          "http": {
+            "method": "GET",
+            "url": "https://api.zenzap.co/v2/updates",
+            "headers": [
+              {
+                "name": "X-Signature",
+                "value": ""
+              },
+              {
+                "name": "X-Timestamp",
+                "value": ""
+              }
+            ],
+            "params": [
+              {
+                "name": "offset",
+                "value": "",
+                "type": "query",
+                "description": "Opaque offset returned by a previous `nextOffset`. Omit on the first request."
+              },
+              {
+                "name": "limit",
+                "value": "",
+                "type": "query",
+                "description": "Maximum updates to return (default: 50, max: 100)"
+              },
+              {
+                "name": "timeout",
+                "value": "",
+                "type": "query",
+                "description": "Long polling timeout in seconds (default: 0, max: 30)"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "token": "{{bearerToken}}"
+            }
+          },
+          "docs": "Retrieve outbound events for bots configured with **polling** delivery mode.\n\nLong polling behavior:\n- If updates are available after `offset`, they are returned immediately\n- If none are available and `timeout > 0`, the request waits up to `timeout` seconds\n- If still no updates, returns an empty list with `nextOffset`\n- Returns `409` if delivery mode is not polling, or if `offset` is no longer available\n\nMessage attachment payloads are included inline in polling events, the same as webhooks:\n`"
+        }
+      ]
+    }
+  ],
+  "bundled": true
+}

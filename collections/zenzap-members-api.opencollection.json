@@ -1,0 +1,94 @@
+{
+  "opencollection": "1.0.0",
+  "info": {
+    "name": "Zenzap External Integration Agentic Members API",
+    "version": "2.0.0"
+  },
+  "request": {
+    "auth": {
+      "type": "bearer",
+      "token": "{{bearerToken}}"
+    }
+  },
+  "items": [
+    {
+      "info": {
+        "name": "Members",
+        "type": "folder"
+      },
+      "items": [
+        {
+          "info": {
+            "name": "List members",
+            "type": "http"
+          },
+          "http": {
+            "method": "GET",
+            "url": "https://api.zenzap.co/v2/members",
+            "headers": [
+              {
+                "name": "X-Signature",
+                "value": ""
+              },
+              {
+                "name": "X-Timestamp",
+                "value": ""
+              }
+            ],
+            "params": [
+              {
+                "name": "limit",
+                "value": "",
+                "type": "query",
+                "description": "Maximum number of members to return (default: 50, max: 100)"
+              },
+              {
+                "name": "cursor",
+                "value": "",
+                "type": "query",
+                "description": "Opaque cursor from a previous `nextCursor` value."
+              },
+              {
+                "name": "emails",
+                "value": "john@example.com,jane@example.com",
+                "type": "query",
+                "description": "Comma-separated list of email addresses to filter members (e.g., john@example.com,jane@example.com)"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "token": "{{bearerToken}}"
+            }
+          },
+          "docs": "Get a paginated list of all members in your organization. Only returns active members.\n\nPagination:\n- `limit`: default `50`, max `100`\n- `cursor`: opaque cursor from the previous response (`nextCursor`)\n"
+        },
+        {
+          "info": {
+            "name": "Get current member",
+            "type": "http"
+          },
+          "http": {
+            "method": "GET",
+            "url": "https://api.zenzap.co/v2/members/me",
+            "headers": [
+              {
+                "name": "X-Signature",
+                "value": ""
+              },
+              {
+                "name": "X-Timestamp",
+                "value": ""
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "token": "{{bearerToken}}"
+            }
+          },
+          "docs": "Get information about the member associated with the current API key (the bot itself).\n"
+        }
+      ]
+    }
+  ],
+  "bundled": true
+}

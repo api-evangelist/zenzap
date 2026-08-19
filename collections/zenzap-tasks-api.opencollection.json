@@ -1,0 +1,213 @@
+{
+  "opencollection": "1.0.0",
+  "info": {
+    "name": "Zenzap External Integration Agentic Tasks API",
+    "version": "2.0.0"
+  },
+  "request": {
+    "auth": {
+      "type": "bearer",
+      "token": "{{bearerToken}}"
+    }
+  },
+  "items": [
+    {
+      "info": {
+        "name": "Tasks",
+        "type": "folder"
+      },
+      "items": [
+        {
+          "info": {
+            "name": "List tasks",
+            "type": "http"
+          },
+          "http": {
+            "method": "GET",
+            "url": "https://api.zenzap.co/v2/tasks",
+            "headers": [
+              {
+                "name": "X-Signature",
+                "value": ""
+              },
+              {
+                "name": "X-Timestamp",
+                "value": ""
+              }
+            ],
+            "params": [
+              {
+                "name": "topicId",
+                "value": "550e8400-e29b-41d4-a716-446655440000",
+                "type": "query",
+                "description": "Filter tasks by topic ID"
+              },
+              {
+                "name": "status",
+                "value": "Open",
+                "type": "query",
+                "description": "Filter by task status"
+              },
+              {
+                "name": "assignee",
+                "value": "550e8400-e29b-41d4-a716-446655440001",
+                "type": "query",
+                "description": "Filter by assignee profile ID (empty value filters unassigned tasks)"
+              },
+              {
+                "name": "limit",
+                "value": "",
+                "type": "query",
+                "description": "Maximum tasks to return (default 50, max 100)"
+              },
+              {
+                "name": "cursor",
+                "value": "",
+                "type": "query",
+                "description": "Opaque cursor from a previous `nextCursor` value."
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "token": "{{bearerToken}}"
+            }
+          },
+          "docs": "List tasks visible to your bot.\n\nOptional filters:\n- `topicId`: only tasks from a specific topic\n- `status`: `Open` or `Done`\n- `assignee`: profile ID of assignee (pass empty string to filter unassigned tasks)\n\nPagination:\n- `limit`: default `50`, max `100`\n- `cursor`: opaque cursor from the previous response (`nextCursor`)\n"
+        },
+        {
+          "info": {
+            "name": "Create a task",
+            "type": "http"
+          },
+          "http": {
+            "method": "POST",
+            "url": "https://api.zenzap.co/v2/tasks",
+            "headers": [
+              {
+                "name": "X-Signature",
+                "value": ""
+              },
+              {
+                "name": "X-Timestamp",
+                "value": ""
+              }
+            ],
+            "body": {
+              "type": "json",
+              "data": "{}"
+            },
+            "auth": {
+              "type": "bearer",
+              "token": "{{bearerToken}}"
+            }
+          },
+          "docs": "Create a task in a topic. Tasks can be assigned to specific users and have due dates.\n\nLimits:\n- task title is limited to 256 characters\n- task description is limited to 10000 characters\n- you can only assign tasks to members that are already in your topic\n- task due date must be a valid Unix timestamp in milliseconds (e.g., 1699564800000)\n- task externalId is limited to 100 characters\n"
+        },
+        {
+          "info": {
+            "name": "Get task details",
+            "type": "http"
+          },
+          "http": {
+            "method": "GET",
+            "url": "https://api.zenzap.co/v2/tasks/:taskId",
+            "headers": [
+              {
+                "name": "X-Signature",
+                "value": ""
+              },
+              {
+                "name": "X-Timestamp",
+                "value": ""
+              }
+            ],
+            "params": [
+              {
+                "name": "taskId",
+                "value": "880e8400-e29b-41d4-a716-446655440003",
+                "type": "path",
+                "description": "The task ID"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "token": "{{bearerToken}}"
+            }
+          },
+          "docs": "Get a single task by ID."
+        },
+        {
+          "info": {
+            "name": "Update a task",
+            "type": "http"
+          },
+          "http": {
+            "method": "PATCH",
+            "url": "https://api.zenzap.co/v2/tasks/:taskId",
+            "headers": [
+              {
+                "name": "X-Signature",
+                "value": ""
+              },
+              {
+                "name": "X-Timestamp",
+                "value": ""
+              }
+            ],
+            "params": [
+              {
+                "name": "taskId",
+                "value": "880e8400-e29b-41d4-a716-446655440003",
+                "type": "path",
+                "description": "The task ID to update"
+              }
+            ],
+            "body": {
+              "type": "json",
+              "data": "{}"
+            },
+            "auth": {
+              "type": "bearer",
+              "token": "{{bearerToken}}"
+            }
+          },
+          "docs": "Update task fields. This endpoint supports partial updates.\n\nUpdatable fields:\n- `name` (alias of `title`)\n- `description`\n- `assignee`\n- `dueDate`\n- `status` (`Open` or `Done`)\n\nNotes:\n- Provide either `name` or `title` (not both)\n- Setting `assignee` to an empty string unassigns the task\n- Setting `dueDate` to `0` clears the due date\n- When status is set to `Done`, the task is marked as closed\n- When `status` is provided, `topicId` is required\n- Every successful update creates a task system me"
+        },
+        {
+          "info": {
+            "name": "Delete a task",
+            "type": "http"
+          },
+          "http": {
+            "method": "DELETE",
+            "url": "https://api.zenzap.co/v2/tasks/:taskId",
+            "headers": [
+              {
+                "name": "X-Signature",
+                "value": ""
+              },
+              {
+                "name": "X-Timestamp",
+                "value": ""
+              }
+            ],
+            "params": [
+              {
+                "name": "taskId",
+                "value": "880e8400-e29b-41d4-a716-446655440003",
+                "type": "path",
+                "description": "The task ID to delete"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "token": "{{bearerToken}}"
+            }
+          },
+          "docs": "Delete a task by ID.\n"
+        }
+      ]
+    }
+  ],
+  "bundled": true
+}

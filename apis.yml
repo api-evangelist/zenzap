@@ -42,6 +42,17 @@ tags:
 - Collaboration
 - Chat
 - Bots
+- Webhook
+- Productivity
+- Task
+tags_raw:
+- Company
+- Ai Ml
+- Messaging
+- Team Communication
+- Collaboration
+- Chat
+- Bots
 - Webhooks
 - Productivity
 - Tasks
@@ -113,6 +124,8 @@ apis:
   humanURL: https://docs.zenzap.co/api-reference/getting-started
   baseURL: https://api.zenzap.co
   tags:
+  - Message
+  tags_raw:
   - Messages
   properties:
   - type: OpenAPI
@@ -145,6 +158,8 @@ apis:
   humanURL: https://docs.zenzap.co/api-reference/getting-started
   baseURL: https://api.zenzap.co
   tags:
+  - Authentication
+  tags_raw:
   - OAuth
   properties:
   - type: OpenAPI
@@ -188,6 +203,8 @@ apis:
   humanURL: https://docs.zenzap.co/api-reference/getting-started
   baseURL: https://api.zenzap.co
   tags:
+  - Task
+  tags_raw:
   - Tasks
   properties:
   - type: OpenAPI

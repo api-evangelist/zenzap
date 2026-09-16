@@ -144,40 +144,6 @@ apis:
     url: openapi/zenzap-messages-api-openapi.yml
   - type: RateLimits
     url: https://docs.zenzap.co/api-reference/rate-limits
-- aid: zenzap:zenzap-oauth-api
-  name: ZenZap OAuth API
-  description: >-
-    OAuth 2.0 `client_credentials` grant. Used by API-key bots that were created with `credentialType:
-    oauth` to mint short-lived bearer access tokens.
-
-
-    **In a nutshell:**
-
-    1. Get a `clientId` and `clientSecret` from your bot in the Zenzap admin console. The `clientSecret`
-    is shown once at creation; if lost, rotate it from the same screen.
-
-    2. `POST /oauth/token` with `grant_type=client_credentials` to receive a JWT access token (1-hour
-    TTL).
-
-    3. Call any `/v2/*` endpoint with `Authorization: Bearer <access_token>`. No `X-Signature` / `X-Timestamp`
-    headers are needed on the OAuth path.
-
-    4. Re-mint when the token expires. There is **no refresh token**.
-
-
-    Scopes are granular per endpoint — see the [Authentication page](/api-reference/authentication#oauth-scopes)
-    for the full scope catalog and the endpoint → scope mapping.
-  humanURL: https://docs.zenzap.co/api-reference/getting-started
-  baseURL: https://api.zenzap.co
-  tags:
-  - Authentication
-  tags_raw:
-  - OAuth
-  properties:
-  - type: OpenAPI
-    url: openapi/zenzap-oauth-api-openapi.yml
-  - type: RateLimits
-    url: https://docs.zenzap.co/api-reference/rate-limits
 - aid: zenzap:zenzap-polls-api
   name: ZenZap Polls API
   description: >-
@@ -233,6 +199,18 @@ apis:
   properties:
   - type: OpenAPI
     url: openapi/zenzap-topics-group-chats-channels-conversations-api-openapi.yml
+  - type: RateLimits
+    url: https://docs.zenzap.co/api-reference/rate-limits
+- aid: zenzap:zenzap-o-auth-api
+  name: ZenZap O Auth API
+  description: OAuth 2.0 `client_credentials` grant.
+  humanURL: https://docs.zenzap.co/api-reference/getting-started
+  baseURL: https://api.zenzap.co
+  tags:
+  - O Auth
+  properties:
+  - type: OpenAPI
+    url: openapi/zenzap-o-auth-api-openapi.yml
   - type: RateLimits
     url: https://docs.zenzap.co/api-reference/rate-limits
 common:

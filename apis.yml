@@ -227,6 +227,8 @@ apis:
   humanURL: https://docs.zenzap.co/api-reference/getting-started
   baseURL: https://api.zenzap.co
   tags:
+  - Authentication
+  tags_raw:
   - OAuth
   properties:
   - type: OpenAPI

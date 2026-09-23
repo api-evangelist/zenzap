@@ -1,7 +1,7 @@
-openapi: 3.0.3
+openapi: 3.2.0
 info:
-  title: Zenzap External Integration Agentic Topics (group chats/channels/conversations) API
-  description: "API for external applications to integrate with Zenzap.\n## Getting Started\nWelcome to the Zenzap External Integration API documentation. This API is used to integrate with Zenzap.\nAs a context we would like to familiarize you with the Zenzap platform and how it works.\nZenzap is a platform for creating and managing topics and messages.\nTopics (Zenzap term for group chats/channels/conversations) are used to create and manage conversations with your team. Topics are used to group messages and tasks together.\nMessages are used to send and receive messages with your team.\nTasks are used to create and manage tasks with your team.\nMembers are used to manage your team members.\nAPI keys are used to authenticate your requests to the Zenzap API.\nAPI keys are created and managed by the Zenzap admin user.\n\nWhen you create a new API key, it would create a new bot user in Zenzap, on which behalf you can send messages, create topics, create tasks and manage members.\nAll actions you perform with the API key will be performed on behalf of the bot user.\nThe bot can be used within the scope of your organization. You can create topics, send messages, create tasks and manage members on behalf of the bot.\n1. On a Zenzap admin user, go to https://app.zenzap.co/console\n2. Create a new API key with the needed permissions\n3. Copy the API key and secret from the API key settings\n4. For each request:\n   - Add the Authorization header with your API key\n   - Generate a Unix timestamp in milliseconds\n   - Calculate the HMAC-SHA256 signature:\n     - For POST/PUT/PATCH/DELETE: Sign `{timestamp}.{body}`\n     - For GET: Sign `{timestamp}.{uri}` (e.g., `/v2/members?limit=10`)\n   - Add the X-Signature header with the hex-encoded signature\n   - Add the X-Timestamp header with the timestamp used in the payload\n\n## Authentication\nAll API endpoints require two forms of authentication:\n\n1. **Bearer Token**: Include your API key in the Authorization header:\n```\nAuthorization: Bearer YOUR_API_KEY\n```\n\n2. **Request Signing**: Include an HMAC signature and timestamp in headers:\n```\nX-Signature: <HMAC-SHA256 hex-encoded signature>\nX-Timestamp: <Unix timestamp in milliseconds>\n```\nThe signature includes a timestamp for replay protection. Requests older than 5 minutes are rejected.\n\nThe signature payload differs by HTTP method:\n- **POST/PUT/PATCH/DELETE requests**: Sign `{timestamp}.{body}`\n- **GET requests**: Sign `{timestamp}.{uri}`\n\nThe signature is calculated using HMAC-SHA256 with your API secret.\n\n  **How to calculate:**\n  1. Get the current Unix timestamp in milliseconds\n  2. Determine the payload:\n      - **POST/PUT/PATCH/DELETE**: Use `{timestamp}.{body}` (e.g., `1699564800000.{\"topicId\":\"123\"}`)\n      - **GET**: Use `{timestamp}.{uri}` (e.g., `1699564800000./v2/members?limit=10`)\n  3. Calculate HMAC-SHA256 of the payload using your API secret\n  4. Hex-encode the result (64 character lowercase string)\n  5. Include timestamp in X-Timestamp header\n\n  **Example (Python):**\n  ```python\n  import json\n  import hmac\n  import hashlib\n  import time\n  import requests\n\n  def create_topic(name: str, members: list[str], description: str = None, external_id: str = None) -> dict:\n      \"\"\"Create a topic in Zenzap with HMAC signature and replay protection.\"\"\"\n\n      # Build request body\n      body = {\n          \"name\": name,\n          \"members\": members,\n      }\n      if description:\n          body[\"description\"] = description\n      if external_id:\n          body[\"externalId\"] = external_id\n\n      # Serialize body (no spaces for consistent signing)\n      body_json = json.dumps(body, separators=(\",\", \":\"))\n\n      # Get timestamp for replay protection\n      timestamp = int(time.time() * 1000)  # Unix milliseconds\n\n      # Create HMAC-SHA256 signature with timestamp\n      signature_payload = f\"{timestamp}.{body_json}\"\n      signature = hmac.new(\n          API_SECRET.encode(),\n          signature_payload.encode(),\n          hashlib.sha256\n      ).hexdigest()\n\n      # Make request\n      headers = {\n          \"Authorization\": f\"Bearer {API_KEY}\",\n          \"Content-Type\": \"application/json\",\n          \"X-Signature\": signature,\n          \"X-Timestamp\": str(timestamp),\n      }\n\n      response = requests.post(f\"{BASE_URL}/v2/topics\", headers=headers, data=body_json)\n      response.raise_for_status()\n      return response.json()\n  ```\n\n  **Note:** Our API documentation tools cannot automatically generate HMAC signatures. You will need to calculate this manually or use a tool like Postman with pre-request scripts.\n\n\n## Rate Limits\nAPI requests are rate limited per organization. Contact support for specific limits.\n"
+  title: Zenzap External Integration Topics (group…
+  description: API for external applications to integrate with Zenzap.
   version: 2.0.0
   contact:
     name: Zenzap Support
@@ -29,9 +29,7 @@ paths:
 
         - `limit`: default `50`, max `100`
 
-        - `cursor`: opaque cursor from the previous response (`nextCursor`)
-
-        '
+        - `cursor`: opaque cursor from the previous response (`nextCursor`)'
       operationId: listTopics
       security:
       - bearerAuth: []
@@ -122,9 +120,7 @@ paths:
 
         - topic externalId is limited to 100 characters
 
-        - externalId must be unique per bot - you cannot create multiple topics with the same externalId
-
-        '
+        - externalId must be unique per bot - you cannot create multiple topics with the same externalId'
       operationId: createTopic
       security:
       - bearerAuth: []
@@ -225,7 +221,7 @@ paths:
         You can use either the **short external ID** (the value you passed when creating the topic) or the **fully qualified external ID**.
 
 
-        For security purposes, if multiple bots create topics with the same external ID, each topic is internally prefixed with the bot ID in the format **bot_id:external_id**. The bot ID follows the format `b@<uuid>` (e.g., `b@660e8400-e29b-41d4-a716-446655440003`). To avoid ambiguity, use the fully qualified format like **https://app.zenzap.co?external_topic=b@660e8400-e29b-41d4-a716-446655440003:project-123**.
+        For security purposes, if multiple bots create topics with the same external ID, each topic is internally prefixed with the bot ID in the format **bot_id:external_id**. The bot ID follows the format `b@` (e.g., `b@660e8400-e29b-41d4-a716-446655440003`). To avoid ambiguity, use the fully qualified format like **https://app.zenzap.co?external_topic=b@660e8400-e29b-41d4-a716-446655440003:project-123**.
 
 
         | Format | Example URL |
@@ -243,15 +239,13 @@ paths:
         If you use the short external ID and multiple bots have created topics with the same external ID, the user will see a selection screen to choose the correct topic:
 
 
-        ![Topic selection screen](/images/topic_selection.jpg)
+        !Topic selection screen
 
 
         ### Platform availability
 
 
-        Deep linking is currently supported on **Web** and **Windows** versions of Zenzap.
-
-        '
+        Deep linking is currently supported on **Web** and **Windows** versions of Zenzap.'
       operationId: getTopicByExternalId
       security:
       - bearerAuth: []
@@ -305,9 +299,7 @@ paths:
 
         **Note:** For security reasons, a 404 response is returned both when the topic does not exist
 
-        and when your bot is not a member of the topic.
-
-        '
+        and when your bot is not a member of the topic.'
       operationId: getTopic
       security:
       - bearerAuth: []
@@ -370,9 +362,7 @@ paths:
 
         - topic name is limited to 64 characters
 
-        - topic description is limited to 10000 characters
-
-        '
+        - topic description is limited to 10000 characters'
       operationId: updateTopic
       security:
       - bearerAuth: []
@@ -439,9 +429,7 @@ paths:
 
         **Note:** For security reasons, a 404 response is returned both when the topic does not exist
 
-        and when your bot is not a member of the topic.
-
-        '
+        and when your bot is not a member of the topic.'
       operationId: getTopicMessages
       security:
       - bearerAuth: []
@@ -588,9 +576,7 @@ paths:
         - Members already in the topic will result in a 400 error
 
 
-        **Limits:** Maximum 5 members per request. Duplicate member IDs in the request are automatically removed. For adding many members, create the topic with all members upfront.
-
-        '
+        **Limits:** Maximum 5 members per request. Duplicate member IDs in the request are automatically removed. For adding many members, create the topic with all members upfront.'
       operationId: addTopicMembers
       security:
       - bearerAuth: []
@@ -666,9 +652,7 @@ paths:
         **Limits:** Maximum 5 members per request. Duplicate member IDs are automatically removed.
 
 
-        **Note:** The bot can remove itself from the topic if needed.
-
-        '
+        **Note:** The bot can remove itself from the topic if needed.'
       operationId: removeTopicMembers
       security:
       - bearerAuth: []
@@ -728,298 +712,36 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 components:
+  responses:
+    BadRequest:
+      description: Bad request - invalid input
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: text is required
+    NotFound:
+      description: Resource not found
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: Topic not found
+    Unauthorized:
+      description: Unauthorized - invalid or missing API token
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: unauthorized
+    InternalServerError:
+      description: Internal server error
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: internal server error
   schemas:
-    TopicMemberAddRequest:
-      type: object
-      required:
-      - memberIds
-      properties:
-        memberIds:
-          type: array
-          items:
-            type: string
-            format: uuid
-          minItems: 1
-          maxItems: 5
-          description: Array of member IDs to add to the topic (max 5). All members must be from the same organization as the bot and must not already be members of the topic. Duplicate IDs in the request are automatically removed.
-          example:
-          - 550e8400-e29b-41d4-a716-446655440003
-          - 550e8400-e29b-41d4-a716-446655440004
-    MessageReaction:
-      type: object
-      properties:
-        emoji:
-          type: string
-          description: The emoji used for the reaction
-          example: 👍
-        count:
-          type: integer
-          description: Number of users who reacted with this emoji
-          example: 3
-        userIds:
-          type: array
-          items:
-            type: string
-          description: IDs of users who reacted (if includeReactionUsers is true)
-          example:
-          - 550e8400-e29b-41d4-a716-446655440001
-    TopicListItem:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-          description: The topic ID
-          example: 550e8400-e29b-41d4-a716-446655440000
-        name:
-          type: string
-          description: The topic name (for DMs, this is the other participant's name)
-          example: Project Updates
-        description:
-          type: string
-          description: The topic description (empty for DMs)
-          example: Discussion for project milestones
-        type:
-          type: string
-          enum:
-          - topic
-          - dm
-          description: 'The type of conversation:
-
-            - `topic`: A group chat/channel with multiple members
-
-            - `dm`: A direct message conversation between two members
-
-            '
-          example: topic
-        properties:
-          type: array
-          items:
-            type: string
-            enum:
-            - announcement
-          description: 'Topic properties/flags:
-
-            - `announcement`: An announcement channel (read-only for non-admins)
-
-            '
-          example: []
-        members:
-          type: array
-          items:
-            type: string
-          description: Array of member IDs in the topic
-          example:
-          - 550e8400-e29b-41d4-a716-446655440001
-          - 550e8400-e29b-41d4-a716-446655440002
-        createdAt:
-          type: integer
-          format: int64
-          description: Unix timestamp in milliseconds when the topic was created
-          example: 1699564800000
-        updatedAt:
-          type: integer
-          format: int64
-          description: Unix timestamp in milliseconds when the topic was last updated
-          example: 1699564800000
-        externalId:
-          type: string
-          description: Optional external identifier if set when creating the topic
-          example: project-alpha
-    MessageMention:
-      type: object
-      properties:
-        id:
-          type: string
-          description: The mentioned profile ID
-          example: 550e8400-e29b-41d4-a716-446655440001
-        name:
-          type: string
-          description: Display name used for the mention text
-          example: Alice Johnson
-    TopicMemberRemoveRequest:
-      type: object
-      required:
-      - memberIds
-      properties:
-        memberIds:
-          type: array
-          items:
-            type: string
-            format: uuid
-          minItems: 1
-          maxItems: 5
-          description: Array of member IDs to remove from the topic (max 5). Members not in the topic are silently ignored. Duplicates are automatically removed.
-          example:
-          - 550e8400-e29b-41d4-a716-446655440003
-          - 550e8400-e29b-41d4-a716-446655440004
-    TopicCreateRequest:
-      type: object
-      required:
-      - name
-      - members
-      properties:
-        name:
-          type: string
-          maxLength: 64
-          description: The topic name
-          example: Project Updates
-        description:
-          type: string
-          maxLength: 10000
-          description: Optional topic description
-          example: Discussion for project milestones
-        members:
-          type: array
-          items:
-            type: string
-            format: uuid
-          maxItems: 100
-          description: Array of user IDs to add as topic members (max 100). Your bot will automatically be added as a member.
-          example:
-          - 550e8400-e29b-41d4-a716-446655440001
-          - 550e8400-e29b-41d4-a716-446655440002
-        externalId:
-          type: string
-          maxLength: 100
-          description: Optional external identifier for tracking purposes. Must be unique per bot - you cannot reuse the same external ID for multiple topics.
-          example: project-alpha
-    TopicMessagesResponse:
-      type: object
-      properties:
-        messages:
-          type: array
-          items:
-            $ref: '#/components/schemas/MessageItem'
-          description: Array of message objects
-        nextCursor:
-          type: string
-          description: Cursor for the next page. Pass this value to the `cursor` parameter to get the next page.
-          example: eyJ0IjoxNjk5NTY0NzAwMDAwLCJpZCI6IjY2MGU4NDAwLWUyOWItNDFkNC1hNzE2LTQ0NjY1NTQ0MDAwMiIsIm8iOiJkZXNjIn0=
-        hasMore:
-          type: boolean
-          description: Whether there are more messages to fetch
-          example: true
-    TopicMemberUpdateResponse:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-          description: The topic ID
-          example: 550e8400-e29b-41d4-a716-446655440000
-        memberIds:
-          type: array
-          items:
-            type: string
-          description: Updated array of member IDs in the topic
-          example:
-          - 550e8400-e29b-41d4-a716-446655440001
-          - 550e8400-e29b-41d4-a716-446655440002
-        updatedAt:
-          type: integer
-          format: int64
-          description: Unix timestamp in milliseconds when the topic was updated
-          example: 1699564800000
-    TopicGetResponse:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-          description: The topic ID
-          example: 550e8400-e29b-41d4-a716-446655440000
-        name:
-          type: string
-          description: The topic name
-          example: Project Updates
-        description:
-          type: string
-          description: The topic description
-          example: Discussion for project milestones
-        memberIds:
-          type: array
-          items:
-            type: string
-          description: Array of member IDs in the topic
-          example:
-          - 550e8400-e29b-41d4-a716-446655440001
-          - 550e8400-e29b-41d4-a716-446655440002
-    TopicCreateResponse:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-          description: The created topic ID
-        name:
-          type: string
-          description: The topic name
-        members:
-          type: array
-          items:
-            type: string
-          description: Array of member IDs in the topic (including the bot)
-          example:
-          - 550e8400-e29b-41d4-a716-446655440001
-          - b@660e8400-e29b-41d4-a716-446655440003
-        externalId:
-          type: string
-          description: The fully qualified external ID (bot_id:your_external_id). Only present if externalId was provided in the request.
-          example: b@660e8400-e29b-41d4-a716-446655440003:project-alpha
-        createdAt:
-          type: integer
-          format: int64
-          description: Unix timestamp in milliseconds
-    TopicsListResponse:
-      type: object
-      properties:
-        topics:
-          type: array
-          items:
-            $ref: '#/components/schemas/TopicListItem'
-          description: Array of topic objects
-        nextCursor:
-          type: string
-          description: Cursor for the next page. Omitted when there are no more results.
-        hasMore:
-          type: boolean
-          description: Whether there are more topics available.
-    TopicPatchRequest:
-      type: object
-      description: At least one of name or description must be provided
-      minProperties: 1
-      properties:
-        name:
-          type: string
-          maxLength: 64
-          description: The new topic name
-          example: Updated Project Name
-        description:
-          type: string
-          maxLength: 10000
-          description: The new topic description
-          example: Updated discussion for project milestones
-    MessageAttachment:
-      type: object
-      properties:
-        id:
-          type: string
-          description: The attachment ID
-        type:
-          type: string
-          enum:
-          - image
-          - file
-          - video
-          - audio
-          description: The attachment type
-        name:
-          type: string
-          description: The file name
-        url:
-          type: string
-          description: URL to download the attachment
     MessageItem:
       type: object
       properties:
@@ -1090,35 +812,297 @@ components:
           items:
             $ref: '#/components/schemas/MessageReaction'
           description: Array of reactions to the message
-  responses:
-    NotFound:
-      description: Resource not found
-      content:
-        text/plain:
-          schema:
+    MessageMention:
+      type: object
+      properties:
+        id:
+          type: string
+          description: The mentioned profile ID
+          example: 550e8400-e29b-41d4-a716-446655440001
+        name:
+          type: string
+          description: Display name used for the mention text
+          example: Alice Johnson
+    MessageReaction:
+      type: object
+      properties:
+        emoji:
+          type: string
+          description: The emoji used for the reaction
+          example: 👍
+        count:
+          type: integer
+          description: Number of users who reacted with this emoji
+          example: 3
+        userIds:
+          type: array
+          items:
             type: string
-          example: Topic not found
-    InternalServerError:
-      description: Internal server error
-      content:
-        text/plain:
-          schema:
+          description: IDs of users who reacted (if includeReactionUsers is true)
+          example:
+          - 550e8400-e29b-41d4-a716-446655440001
+    TopicGetResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The topic ID
+          example: 550e8400-e29b-41d4-a716-446655440000
+        name:
+          type: string
+          description: The topic name
+          example: Project Updates
+        description:
+          type: string
+          description: The topic description
+          example: Discussion for project milestones
+        memberIds:
+          type: array
+          items:
             type: string
-          example: internal server error
-    Unauthorized:
-      description: Unauthorized - invalid or missing API token
-      content:
-        text/plain:
-          schema:
+          description: Array of member IDs in the topic
+          example:
+          - 550e8400-e29b-41d4-a716-446655440001
+          - 550e8400-e29b-41d4-a716-446655440002
+    TopicMemberUpdateResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The topic ID
+          example: 550e8400-e29b-41d4-a716-446655440000
+        memberIds:
+          type: array
+          items:
             type: string
-          example: unauthorized
-    BadRequest:
-      description: Bad request - invalid input
-      content:
-        text/plain:
-          schema:
+          description: Updated array of member IDs in the topic
+          example:
+          - 550e8400-e29b-41d4-a716-446655440001
+          - 550e8400-e29b-41d4-a716-446655440002
+        updatedAt:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds when the topic was updated
+          example: 1699564800000
+    TopicsListResponse:
+      type: object
+      properties:
+        topics:
+          type: array
+          items:
+            $ref: '#/components/schemas/TopicListItem'
+          description: Array of topic objects
+        nextCursor:
+          type: string
+          description: Cursor for the next page. Omitted when there are no more results.
+        hasMore:
+          type: boolean
+          description: Whether there are more topics available.
+    TopicCreateRequest:
+      type: object
+      required:
+      - name
+      - members
+      properties:
+        name:
+          type: string
+          maxLength: 64
+          description: The topic name
+          example: Project Updates
+        description:
+          type: string
+          maxLength: 10000
+          description: Optional topic description
+          example: Discussion for project milestones
+        members:
+          type: array
+          items:
             type: string
-          example: text is required
+            format: uuid
+          maxItems: 100
+          description: Array of user IDs to add as topic members (max 100). Your bot will automatically be added as a member.
+          example:
+          - 550e8400-e29b-41d4-a716-446655440001
+          - 550e8400-e29b-41d4-a716-446655440002
+        externalId:
+          type: string
+          maxLength: 100
+          description: Optional external identifier for tracking purposes. Must be unique per bot - you cannot reuse the same external ID for multiple topics.
+          example: project-alpha
+    TopicMemberAddRequest:
+      type: object
+      required:
+      - memberIds
+      properties:
+        memberIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          minItems: 1
+          maxItems: 5
+          description: Array of member IDs to add to the topic (max 5). All members must be from the same organization as the bot and must not already be members of the topic. Duplicate IDs in the request are automatically removed.
+          example:
+          - 550e8400-e29b-41d4-a716-446655440003
+          - 550e8400-e29b-41d4-a716-446655440004
+    TopicMessagesResponse:
+      type: object
+      properties:
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/MessageItem'
+          description: Array of message objects
+        nextCursor:
+          type: string
+          description: Cursor for the next page. Pass this value to the `cursor` parameter to get the next page.
+          example: eyJ0IjoxNjk5NTY0NzAwMDAwLCJpZCI6IjY2MGU4NDAwLWUyOWItNDFkNC1hNzE2LTQ0NjY1NTQ0MDAwMiIsIm8iOiJkZXNjIn0=
+        hasMore:
+          type: boolean
+          description: Whether there are more messages to fetch
+          example: true
+    MessageAttachment:
+      type: object
+      properties:
+        id:
+          type: string
+          description: The attachment ID
+        type:
+          type: string
+          enum:
+          - image
+          - file
+          - video
+          - audio
+          description: The attachment type
+        name:
+          type: string
+          description: The file name
+        url:
+          type: string
+          description: URL to download the attachment
+    TopicPatchRequest:
+      type: object
+      description: At least one of name or description must be provided
+      minProperties: 1
+      properties:
+        name:
+          type: string
+          maxLength: 64
+          description: The new topic name
+          example: Updated Project Name
+        description:
+          type: string
+          maxLength: 10000
+          description: The new topic description
+          example: Updated discussion for project milestones
+    TopicListItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The topic ID
+          example: 550e8400-e29b-41d4-a716-446655440000
+        name:
+          type: string
+          description: The topic name (for DMs, this is the other participant's name)
+          example: Project Updates
+        description:
+          type: string
+          description: The topic description (empty for DMs)
+          example: Discussion for project milestones
+        type:
+          type: string
+          enum:
+          - topic
+          - dm
+          description: 'The type of conversation:
+
+            - `topic`: A group chat/channel with multiple members
+
+            - `dm`: A direct message conversation between two members
+
+            '
+          example: topic
+        properties:
+          type: array
+          items:
+            type: string
+            enum:
+            - announcement
+          description: 'Topic properties/flags:
+
+            - `announcement`: An announcement channel (read-only for non-admins)
+
+            '
+          example: []
+        members:
+          type: array
+          items:
+            type: string
+          description: Array of member IDs in the topic
+          example:
+          - 550e8400-e29b-41d4-a716-446655440001
+          - 550e8400-e29b-41d4-a716-446655440002
+        createdAt:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds when the topic was created
+          example: 1699564800000
+        updatedAt:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds when the topic was last updated
+          example: 1699564800000
+        externalId:
+          type: string
+          description: Optional external identifier if set when creating the topic
+          example: project-alpha
+    TopicMemberRemoveRequest:
+      type: object
+      required:
+      - memberIds
+      properties:
+        memberIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          minItems: 1
+          maxItems: 5
+          description: Array of member IDs to remove from the topic (max 5). Members not in the topic are silently ignored. Duplicates are automatically removed.
+          example:
+          - 550e8400-e29b-41d4-a716-446655440003
+          - 550e8400-e29b-41d4-a716-446655440004
+    TopicCreateResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The created topic ID
+        name:
+          type: string
+          description: The topic name
+        members:
+          type: array
+          items:
+            type: string
+          description: Array of member IDs in the topic (including the bot)
+          example:
+          - 550e8400-e29b-41d4-a716-446655440001
+          - b@660e8400-e29b-41d4-a716-446655440003
+        externalId:
+          type: string
+          description: The fully qualified external ID (bot_id:your_external_id). Only present if externalId was provided in the request.
+          example: b@660e8400-e29b-41d4-a716-446655440003:project-alpha
+        createdAt:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds
   parameters:
     XSignature:
       name: X-Signature

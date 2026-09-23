@@ -1,0 +1,27 @@
+# Front Door AI Index — zenzap — 2026-09-17
+# AI vocabulary counted on the provider's root page. Generated; do not edit.
+# `score` is null unless ownership is `own` — see front_door_ai.py.
+front_door_ai:
+  slug: zenzap
+  lexicon_version: '1.0'
+  probed_at: '2026-09-17'
+  host: www.zenzap.co
+  final_host: www.zenzap.co
+  ownership: own
+  owner: zenzap
+  shares_host_with: null
+  inherited_from: null
+  verdict: scored
+  score: 8
+  host_score: 8
+  density: 7.23
+  words: 1106
+  tiers:
+    agentic: 1
+    core: 7
+    model: 0
+  ambiguous: 5
+  top_terms:
+    AI: 7
+    agent: 5
+    AI agent: 1

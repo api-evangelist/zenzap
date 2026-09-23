@@ -1,14 +1,7 @@
 {
   "provider": "zenzap",
   "sources": [
-    "zenzap-agentic-api-openapi.yml",
-    "zenzap-long-polling-api-openapi.yml",
-    "zenzap-members-api-openapi.yml",
-    "zenzap-messages-api-openapi.yml",
-    "zenzap-oauth-api-openapi.yml",
-    "zenzap-polls-api-openapi.yml",
-    "zenzap-tasks-api-openapi.yml",
-    "zenzap-topics-group-chats-channels-conversations-api-openapi.yml"
+    "_original/zenzap-openapi-original.yml"
   ],
   "outputs": [
     "zenzap-agentic-api-openapi.yml",
@@ -20,9 +13,25 @@
     "zenzap-tasks-api-openapi.yml",
     "zenzap-topics-group-chats-channels-conversations-api-openapi.yml"
   ],
-  "archived": [],
+  "archived": [
+    "deleted 1 superseded output(s) from the previous generation"
+  ],
   "errors": [],
   "warnings": [],
-  "notes": [],
-  "skipped": []
+  "notes": [
+    "sourced from openapi/_original/ (1 archived document(s)); previously refined output at the top level was skipped rather than re-split",
+    "zenzap-openapi-original.yml: upgraded openapi 3.0.3 -> OpenAPI 3.2.0",
+    "superseded outputs removed: zenzap-o-auth-api-openapi.yml",
+    "apis.yml register: written (+1 apis, 8 total)"
+  ],
+  "skipped": [
+    "zenzap-agentic-api-openapi.yml: previously refined output, superseded by openapi/_original/",
+    "zenzap-long-polling-api-openapi.yml: previously refined output, superseded by openapi/_original/",
+    "zenzap-members-api-openapi.yml: previously refined output, superseded by openapi/_original/",
+    "zenzap-messages-api-openapi.yml: previously refined output, superseded by openapi/_original/",
+    "zenzap-o-auth-api-openapi.yml: previously refined output, superseded by openapi/_original/",
+    "zenzap-polls-api-openapi.yml: previously refined output, superseded by openapi/_original/",
+    "zenzap-tasks-api-openapi.yml: previously refined output, superseded by openapi/_original/",
+    "zenzap-topics-group-chats-channels-conversations-api-openapi.yml: previously refined output, superseded by openapi/_original/"
+  ]
 }

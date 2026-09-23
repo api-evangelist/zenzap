@@ -1,7 +1,7 @@
-openapi: 3.0.3
+openapi: 3.2.0
 info:
-  title: Zenzap External Integration Agentic Tasks API
-  description: "API for external applications to integrate with Zenzap.\n## Getting Started\nWelcome to the Zenzap External Integration API documentation. This API is used to integrate with Zenzap.\nAs a context we would like to familiarize you with the Zenzap platform and how it works.\nZenzap is a platform for creating and managing topics and messages.\nTopics (Zenzap term for group chats/channels/conversations) are used to create and manage conversations with your team. Topics are used to group messages and tasks together.\nMessages are used to send and receive messages with your team.\nTasks are used to create and manage tasks with your team.\nMembers are used to manage your team members.\nAPI keys are used to authenticate your requests to the Zenzap API.\nAPI keys are created and managed by the Zenzap admin user.\n\nWhen you create a new API key, it would create a new bot user in Zenzap, on which behalf you can send messages, create topics, create tasks and manage members.\nAll actions you perform with the API key will be performed on behalf of the bot user.\nThe bot can be used within the scope of your organization. You can create topics, send messages, create tasks and manage members on behalf of the bot.\n1. On a Zenzap admin user, go to https://app.zenzap.co/console\n2. Create a new API key with the needed permissions\n3. Copy the API key and secret from the API key settings\n4. For each request:\n   - Add the Authorization header with your API key\n   - Generate a Unix timestamp in milliseconds\n   - Calculate the HMAC-SHA256 signature:\n     - For POST/PUT/PATCH/DELETE: Sign `{timestamp}.{body}`\n     - For GET: Sign `{timestamp}.{uri}` (e.g., `/v2/members?limit=10`)\n   - Add the X-Signature header with the hex-encoded signature\n   - Add the X-Timestamp header with the timestamp used in the payload\n\n## Authentication\nAll API endpoints require two forms of authentication:\n\n1. **Bearer Token**: Include your API key in the Authorization header:\n```\nAuthorization: Bearer YOUR_API_KEY\n```\n\n2. **Request Signing**: Include an HMAC signature and timestamp in headers:\n```\nX-Signature: <HMAC-SHA256 hex-encoded signature>\nX-Timestamp: <Unix timestamp in milliseconds>\n```\nThe signature includes a timestamp for replay protection. Requests older than 5 minutes are rejected.\n\nThe signature payload differs by HTTP method:\n- **POST/PUT/PATCH/DELETE requests**: Sign `{timestamp}.{body}`\n- **GET requests**: Sign `{timestamp}.{uri}`\n\nThe signature is calculated using HMAC-SHA256 with your API secret.\n\n  **How to calculate:**\n  1. Get the current Unix timestamp in milliseconds\n  2. Determine the payload:\n      - **POST/PUT/PATCH/DELETE**: Use `{timestamp}.{body}` (e.g., `1699564800000.{\"topicId\":\"123\"}`)\n      - **GET**: Use `{timestamp}.{uri}` (e.g., `1699564800000./v2/members?limit=10`)\n  3. Calculate HMAC-SHA256 of the payload using your API secret\n  4. Hex-encode the result (64 character lowercase string)\n  5. Include timestamp in X-Timestamp header\n\n  **Example (Python):**\n  ```python\n  import json\n  import hmac\n  import hashlib\n  import time\n  import requests\n\n  def create_topic(name: str, members: list[str], description: str = None, external_id: str = None) -> dict:\n      \"\"\"Create a topic in Zenzap with HMAC signature and replay protection.\"\"\"\n\n      # Build request body\n      body = {\n          \"name\": name,\n          \"members\": members,\n      }\n      if description:\n          body[\"description\"] = description\n      if external_id:\n          body[\"externalId\"] = external_id\n\n      # Serialize body (no spaces for consistent signing)\n      body_json = json.dumps(body, separators=(\",\", \":\"))\n\n      # Get timestamp for replay protection\n      timestamp = int(time.time() * 1000)  # Unix milliseconds\n\n      # Create HMAC-SHA256 signature with timestamp\n      signature_payload = f\"{timestamp}.{body_json}\"\n      signature = hmac.new(\n          API_SECRET.encode(),\n          signature_payload.encode(),\n          hashlib.sha256\n      ).hexdigest()\n\n      # Make request\n      headers = {\n          \"Authorization\": f\"Bearer {API_KEY}\",\n          \"Content-Type\": \"application/json\",\n          \"X-Signature\": signature,\n          \"X-Timestamp\": str(timestamp),\n      }\n\n      response = requests.post(f\"{BASE_URL}/v2/topics\", headers=headers, data=body_json)\n      response.raise_for_status()\n      return response.json()\n  ```\n\n  **Note:** Our API documentation tools cannot automatically generate HMAC signatures. You will need to calculate this manually or use a tool like Postman with pre-request scripts.\n\n\n## Rate Limits\nAPI requests are rate limited per organization. Contact support for specific limits.\n"
+  title: Zenzap External Integration Tasks API
+  description: API for external applications to integrate with Zenzap.
   version: 2.0.0
   contact:
     name: Zenzap Support
@@ -36,9 +36,7 @@ paths:
 
         - `limit`: default `50`, max `100`
 
-        - `cursor`: opaque cursor from the previous response (`nextCursor`)
-
-        '
+        - `cursor`: opaque cursor from the previous response (`nextCursor`)'
       operationId: listTasks
       security:
       - bearerAuth: []
@@ -118,9 +116,7 @@ paths:
 
         - task due date must be a valid Unix timestamp in milliseconds (e.g., 1699564800000)
 
-        - task externalId is limited to 100 characters
-
-        '
+        - task externalId is limited to 100 characters'
       operationId: createTask
       security:
       - bearerAuth: []
@@ -239,9 +235,7 @@ paths:
 
         - When `status` is provided, `topicId` is required
 
-        - Every successful update creates a task system message in the topic
-
-        '
+        - Every successful update creates a task system message in the topic'
       operationId: patchTask
       security:
       - bearerAuth: []
@@ -303,9 +297,7 @@ paths:
           $ref: '#/components/responses/InternalServerError'
     delete:
       summary: Delete a task
-      description: 'Delete a task by ID.
-
-        '
+      description: Delete a task by ID.
       operationId: deleteTask
       security:
       - bearerAuth: []
@@ -337,32 +329,6 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 components:
-  parameters:
-    XSignature:
-      name: X-Signature
-      in: header
-      required: false
-      description: "HMAC signature of the request for authentication and replay protection.\n\n**Required only when authenticating with a static API key.** If you are using an OAuth access token (issued by `POST /oauth/token`), omit this header — the JWT carries all the authentication and integrity guarantees.\n\n**Replay Protection:** The signature includes a timestamp to prevent replay attacks.\nRequests with timestamps older than 5 minutes are rejected.\n\nThe signature payload differs by HTTP method:\n- **POST/PUT/PATCH/DELETE**: HMAC-SHA256 of `{timestamp}.{body}`\n- **GET**: HMAC-SHA256 of `{timestamp}.{uri}`\n\nThe signature is calculated as:\n1. Get the current Unix timestamp in milliseconds\n2. Determine the payload:\n   - For POST/PUT/PATCH/DELETE: Use `{timestamp}.{body}` where body is the request body\n   - For GET: Use `{timestamp}.{uri}` where uri is the full request URI (e.g., `/v2/members?limit=10`)\n3. Calculate HMAC-SHA256 of the combined payload using your API secret\n4. Hex-encode the output\n5. Include the timestamp in the `X-Timestamp` header\n\nExample for GET request to `/v2/members?limit=10`:\n```\ntimestamp = 1699564800000\npayload = \"1699564800000./v2/members?limit=10\"\nsignature = HMAC-SHA256(secret, payload)\nX-Signature: hex(signature)\nX-Timestamp: 1699564800000\n```\n\nExample for POST request with body `{\"topicId\":\"123\",\"text\":\"Hello\"}`:\n```\ntimestamp = 1699564800000\npayload = '1699564800000.{\"topicId\":\"123\",\"text\":\"Hello\"}'\nsignature = HMAC-SHA256(secret, payload)\nX-Signature: hex(signature)\nX-Timestamp: 1699564800000\n```\n\nFor `multipart/form-data` requests, sign the exact raw request body bytes\n(including boundaries and file bytes) as transmitted.\n"
-      schema:
-        type: string
-        pattern: ^[a-f0-9]{64}$
-        example: a3d5f8e7c2b1d4f6a8e9c7b5d3f1a2e4b6c8d0f2e4a6b8c0d2e4f6a8b0c2d4e6
-    XTimestamp:
-      name: X-Timestamp
-      in: header
-      required: false
-      description: 'Unix timestamp in milliseconds when the request was created.
-
-        Used for replay protection — requests older than 5 minutes are rejected.
-
-
-        **Required only when authenticating with a static API key.** Omit when using an OAuth access token.
-
-        '
-      schema:
-        type: integer
-        format: int64
-        example: 1699564800000
   schemas:
     TaskListResponse:
       type: object
@@ -436,53 +402,6 @@ components:
           - Open
           - Done
           example: Done
-    TaskCreateRequest:
-      type: object
-      required:
-      - topicId
-      - title
-      properties:
-        topicId:
-          type: string
-          format: uuid
-          description: The ID of the topic where the task should be created
-          example: 550e8400-e29b-41d4-a716-446655440000
-        title:
-          type: string
-          maxLength: 256
-          description: The task title
-          example: Review documentation
-        description:
-          type: string
-          maxLength: 10000
-          description: Optional task description
-          example: Review and update all API documentation
-        assignee:
-          type: string
-          format: uuid
-          description: Optional user ID to assign the task to
-          example: 550e8400-e29b-41d4-a716-446655440001
-        dueDate:
-          type: integer
-          format: int64
-          description: Optional due date as Unix timestamp in milliseconds
-          example: 1699564800000
-        externalId:
-          type: string
-          maxLength: 100
-          description: Optional external identifier for tracking purposes
-          example: jira-PROJ-123
-    TaskPatchResponse:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-          description: Updated task ID
-        updatedAt:
-          type: integer
-          format: int64
-          description: Unix timestamp in milliseconds when the task was updated
     TaskResponse:
       type: object
       properties:
@@ -539,21 +458,54 @@ components:
           format: int64
           description: Task last update timestamp (ms)
           example: 1699564801000
+    TaskPatchResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Updated task ID
+        updatedAt:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds when the task was updated
+    TaskCreateRequest:
+      type: object
+      required:
+      - topicId
+      - title
+      properties:
+        topicId:
+          type: string
+          format: uuid
+          description: The ID of the topic where the task should be created
+          example: 550e8400-e29b-41d4-a716-446655440000
+        title:
+          type: string
+          maxLength: 256
+          description: The task title
+          example: Review documentation
+        description:
+          type: string
+          maxLength: 10000
+          description: Optional task description
+          example: Review and update all API documentation
+        assignee:
+          type: string
+          format: uuid
+          description: Optional user ID to assign the task to
+          example: 550e8400-e29b-41d4-a716-446655440001
+        dueDate:
+          type: integer
+          format: int64
+          description: Optional due date as Unix timestamp in milliseconds
+          example: 1699564800000
+        externalId:
+          type: string
+          maxLength: 100
+          description: Optional external identifier for tracking purposes
+          example: jira-PROJ-123
   responses:
-    NotFound:
-      description: Resource not found
-      content:
-        text/plain:
-          schema:
-            type: string
-          example: Topic not found
-    Unauthorized:
-      description: Unauthorized - invalid or missing API token
-      content:
-        text/plain:
-          schema:
-            type: string
-          example: unauthorized
     BadRequest:
       description: Bad request - invalid input
       content:
@@ -561,6 +513,13 @@ components:
           schema:
             type: string
           example: text is required
+    Unauthorized:
+      description: Unauthorized - invalid or missing API token
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: unauthorized
     InternalServerError:
       description: Internal server error
       content:
@@ -568,6 +527,39 @@ components:
           schema:
             type: string
           example: internal server error
+    NotFound:
+      description: Resource not found
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: Topic not found
+  parameters:
+    XSignature:
+      name: X-Signature
+      in: header
+      required: false
+      description: "HMAC signature of the request for authentication and replay protection.\n\n**Required only when authenticating with a static API key.** If you are using an OAuth access token (issued by `POST /oauth/token`), omit this header — the JWT carries all the authentication and integrity guarantees.\n\n**Replay Protection:** The signature includes a timestamp to prevent replay attacks.\nRequests with timestamps older than 5 minutes are rejected.\n\nThe signature payload differs by HTTP method:\n- **POST/PUT/PATCH/DELETE**: HMAC-SHA256 of `{timestamp}.{body}`\n- **GET**: HMAC-SHA256 of `{timestamp}.{uri}`\n\nThe signature is calculated as:\n1. Get the current Unix timestamp in milliseconds\n2. Determine the payload:\n   - For POST/PUT/PATCH/DELETE: Use `{timestamp}.{body}` where body is the request body\n   - For GET: Use `{timestamp}.{uri}` where uri is the full request URI (e.g., `/v2/members?limit=10`)\n3. Calculate HMAC-SHA256 of the combined payload using your API secret\n4. Hex-encode the output\n5. Include the timestamp in the `X-Timestamp` header\n\nExample for GET request to `/v2/members?limit=10`:\n```\ntimestamp = 1699564800000\npayload = \"1699564800000./v2/members?limit=10\"\nsignature = HMAC-SHA256(secret, payload)\nX-Signature: hex(signature)\nX-Timestamp: 1699564800000\n```\n\nExample for POST request with body `{\"topicId\":\"123\",\"text\":\"Hello\"}`:\n```\ntimestamp = 1699564800000\npayload = '1699564800000.{\"topicId\":\"123\",\"text\":\"Hello\"}'\nsignature = HMAC-SHA256(secret, payload)\nX-Signature: hex(signature)\nX-Timestamp: 1699564800000\n```\n\nFor `multipart/form-data` requests, sign the exact raw request body bytes\n(including boundaries and file bytes) as transmitted.\n"
+      schema:
+        type: string
+        pattern: ^[a-f0-9]{64}$
+        example: a3d5f8e7c2b1d4f6a8e9c7b5d3f1a2e4b6c8d0f2e4a6b8c0d2e4f6a8b0c2d4e6
+    XTimestamp:
+      name: X-Timestamp
+      in: header
+      required: false
+      description: 'Unix timestamp in milliseconds when the request was created.
+
+        Used for replay protection — requests older than 5 minutes are rejected.
+
+
+        **Required only when authenticating with a static API key.** Omit when using an OAuth access token.
+
+        '
+      schema:
+        type: integer
+        format: int64
+        example: 1699564800000
   securitySchemes:
     bearerAuth:
       type: http

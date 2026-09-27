@@ -85,6 +85,8 @@ apis:
   humanURL: https://docs.zenzap.co/api-reference/getting-started
   baseURL: https://api.zenzap.co
   tags:
+  - AI Agents
+  tags_raw:
   - Agentic
   properties:
   - type: OpenAPI

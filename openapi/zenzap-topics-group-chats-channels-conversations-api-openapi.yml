@@ -712,36 +712,165 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 components:
-  responses:
-    BadRequest:
-      description: Bad request - invalid input
-      content:
-        text/plain:
-          schema:
-            type: string
-          example: text is required
-    NotFound:
-      description: Resource not found
-      content:
-        text/plain:
-          schema:
-            type: string
-          example: Topic not found
-    Unauthorized:
-      description: Unauthorized - invalid or missing API token
-      content:
-        text/plain:
-          schema:
-            type: string
-          example: unauthorized
-    InternalServerError:
-      description: Internal server error
-      content:
-        text/plain:
-          schema:
-            type: string
-          example: internal server error
   schemas:
+    TopicGetResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The topic ID
+          example: 550e8400-e29b-41d4-a716-446655440000
+        name:
+          type: string
+          description: The topic name
+          example: Project Updates
+        description:
+          type: string
+          description: The topic description
+          example: Discussion for project milestones
+        memberIds:
+          type: array
+          items:
+            type: string
+          description: Array of member IDs in the topic
+          example:
+          - 550e8400-e29b-41d4-a716-446655440001
+          - 550e8400-e29b-41d4-a716-446655440002
+    TopicPatchRequest:
+      type: object
+      description: At least one of name or description must be provided
+      minProperties: 1
+      properties:
+        name:
+          type: string
+          maxLength: 64
+          description: The new topic name
+          example: Updated Project Name
+        description:
+          type: string
+          maxLength: 10000
+          description: The new topic description
+          example: Updated discussion for project milestones
+    TopicListItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The topic ID
+          example: 550e8400-e29b-41d4-a716-446655440000
+        name:
+          type: string
+          description: The topic name (for DMs, this is the other participant's name)
+          example: Project Updates
+        description:
+          type: string
+          description: The topic description (empty for DMs)
+          example: Discussion for project milestones
+        type:
+          type: string
+          enum:
+          - topic
+          - dm
+          description: 'The type of conversation:
+
+            - `topic`: A group chat/channel with multiple members
+
+            - `dm`: A direct message conversation between two members
+
+            '
+          example: topic
+        properties:
+          type: array
+          items:
+            type: string
+            enum:
+            - announcement
+          description: 'Topic properties/flags:
+
+            - `announcement`: An announcement channel (read-only for non-admins)
+
+            '
+          example: []
+        members:
+          type: array
+          items:
+            type: string
+          description: Array of member IDs in the topic
+          example:
+          - 550e8400-e29b-41d4-a716-446655440001
+          - 550e8400-e29b-41d4-a716-446655440002
+        createdAt:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds when the topic was created
+          example: 1699564800000
+        updatedAt:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds when the topic was last updated
+          example: 1699564800000
+        externalId:
+          type: string
+          description: Optional external identifier if set when creating the topic
+          example: project-alpha
+    TopicCreateResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The created topic ID
+        name:
+          type: string
+          description: The topic name
+        members:
+          type: array
+          items:
+            type: string
+          description: Array of member IDs in the topic (including the bot)
+          example:
+          - 550e8400-e29b-41d4-a716-446655440001
+          - b@660e8400-e29b-41d4-a716-446655440003
+        externalId:
+          type: string
+          description: The fully qualified external ID (bot_id:your_external_id). Only present if externalId was provided in the request.
+          example: b@660e8400-e29b-41d4-a716-446655440003:project-alpha
+        createdAt:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds
+    TopicsListResponse:
+      type: object
+      properties:
+        topics:
+          type: array
+          items:
+            $ref: '#/components/schemas/TopicListItem'
+          description: Array of topic objects
+        nextCursor:
+          type: string
+          description: Cursor for the next page. Omitted when there are no more results.
+        hasMore:
+          type: boolean
+          description: Whether there are more topics available.
+    TopicMemberAddRequest:
+      type: object
+      required:
+      - memberIds
+      properties:
+        memberIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          minItems: 1
+          maxItems: 5
+          description: Array of member IDs to add to the topic (max 5). All members must be from the same organization as the bot and must not already be members of the topic. Duplicate IDs in the request are automatically removed.
+          example:
+          - 550e8400-e29b-41d4-a716-446655440003
+          - 550e8400-e29b-41d4-a716-446655440004
     MessageItem:
       type: object
       properties:
@@ -823,48 +952,42 @@ components:
           type: string
           description: Display name used for the mention text
           example: Alice Johnson
-    MessageReaction:
-      type: object
-      properties:
-        emoji:
-          type: string
-          description: The emoji used for the reaction
-          example: 👍
-        count:
-          type: integer
-          description: Number of users who reacted with this emoji
-          example: 3
-        userIds:
-          type: array
-          items:
-            type: string
-          description: IDs of users who reacted (if includeReactionUsers is true)
-          example:
-          - 550e8400-e29b-41d4-a716-446655440001
-    TopicGetResponse:
+    MessageAttachment:
       type: object
       properties:
         id:
           type: string
-          format: uuid
-          description: The topic ID
-          example: 550e8400-e29b-41d4-a716-446655440000
+          description: The attachment ID
+        type:
+          type: string
+          enum:
+          - image
+          - file
+          - video
+          - audio
+          description: The attachment type
         name:
           type: string
-          description: The topic name
-          example: Project Updates
-        description:
+          description: The file name
+        url:
           type: string
-          description: The topic description
-          example: Discussion for project milestones
+          description: URL to download the attachment
+    TopicMemberRemoveRequest:
+      type: object
+      required:
+      - memberIds
+      properties:
         memberIds:
           type: array
           items:
             type: string
-          description: Array of member IDs in the topic
+            format: uuid
+          minItems: 1
+          maxItems: 5
+          description: Array of member IDs to remove from the topic (max 5). Members not in the topic are silently ignored. Duplicates are automatically removed.
           example:
-          - 550e8400-e29b-41d4-a716-446655440001
-          - 550e8400-e29b-41d4-a716-446655440002
+          - 550e8400-e29b-41d4-a716-446655440003
+          - 550e8400-e29b-41d4-a716-446655440004
     TopicMemberUpdateResponse:
       type: object
       properties:
@@ -886,20 +1009,22 @@ components:
           format: int64
           description: Unix timestamp in milliseconds when the topic was updated
           example: 1699564800000
-    TopicsListResponse:
+    TopicMessagesResponse:
       type: object
       properties:
-        topics:
+        messages:
           type: array
           items:
-            $ref: '#/components/schemas/TopicListItem'
-          description: Array of topic objects
+            $ref: '#/components/schemas/MessageItem'
+          description: Array of message objects
         nextCursor:
           type: string
-          description: Cursor for the next page. Omitted when there are no more results.
+          description: Cursor for the next page. Pass this value to the `cursor` parameter to get the next page.
+          example: eyJ0IjoxNjk5NTY0NzAwMDAwLCJpZCI6IjY2MGU4NDAwLWUyOWItNDFkNC1hNzE2LTQ0NjY1NTQ0MDAwMiIsIm8iOiJkZXNjIn0=
         hasMore:
           type: boolean
-          description: Whether there are more topics available.
+          description: Whether there are more messages to fetch
+          example: true
     TopicCreateRequest:
       type: object
       required:
@@ -931,188 +1056,54 @@ components:
           maxLength: 100
           description: Optional external identifier for tracking purposes. Must be unique per bot - you cannot reuse the same external ID for multiple topics.
           example: project-alpha
-    TopicMemberAddRequest:
+    MessageReaction:
       type: object
-      required:
-      - memberIds
       properties:
-        memberIds:
+        emoji:
+          type: string
+          description: The emoji used for the reaction
+          example: 👍
+        count:
+          type: integer
+          description: Number of users who reacted with this emoji
+          example: 3
+        userIds:
           type: array
           items:
             type: string
-            format: uuid
-          minItems: 1
-          maxItems: 5
-          description: Array of member IDs to add to the topic (max 5). All members must be from the same organization as the bot and must not already be members of the topic. Duplicate IDs in the request are automatically removed.
-          example:
-          - 550e8400-e29b-41d4-a716-446655440003
-          - 550e8400-e29b-41d4-a716-446655440004
-    TopicMessagesResponse:
-      type: object
-      properties:
-        messages:
-          type: array
-          items:
-            $ref: '#/components/schemas/MessageItem'
-          description: Array of message objects
-        nextCursor:
-          type: string
-          description: Cursor for the next page. Pass this value to the `cursor` parameter to get the next page.
-          example: eyJ0IjoxNjk5NTY0NzAwMDAwLCJpZCI6IjY2MGU4NDAwLWUyOWItNDFkNC1hNzE2LTQ0NjY1NTQ0MDAwMiIsIm8iOiJkZXNjIn0=
-        hasMore:
-          type: boolean
-          description: Whether there are more messages to fetch
-          example: true
-    MessageAttachment:
-      type: object
-      properties:
-        id:
-          type: string
-          description: The attachment ID
-        type:
-          type: string
-          enum:
-          - image
-          - file
-          - video
-          - audio
-          description: The attachment type
-        name:
-          type: string
-          description: The file name
-        url:
-          type: string
-          description: URL to download the attachment
-    TopicPatchRequest:
-      type: object
-      description: At least one of name or description must be provided
-      minProperties: 1
-      properties:
-        name:
-          type: string
-          maxLength: 64
-          description: The new topic name
-          example: Updated Project Name
-        description:
-          type: string
-          maxLength: 10000
-          description: The new topic description
-          example: Updated discussion for project milestones
-    TopicListItem:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-          description: The topic ID
-          example: 550e8400-e29b-41d4-a716-446655440000
-        name:
-          type: string
-          description: The topic name (for DMs, this is the other participant's name)
-          example: Project Updates
-        description:
-          type: string
-          description: The topic description (empty for DMs)
-          example: Discussion for project milestones
-        type:
-          type: string
-          enum:
-          - topic
-          - dm
-          description: 'The type of conversation:
-
-            - `topic`: A group chat/channel with multiple members
-
-            - `dm`: A direct message conversation between two members
-
-            '
-          example: topic
-        properties:
-          type: array
-          items:
-            type: string
-            enum:
-            - announcement
-          description: 'Topic properties/flags:
-
-            - `announcement`: An announcement channel (read-only for non-admins)
-
-            '
-          example: []
-        members:
-          type: array
-          items:
-            type: string
-          description: Array of member IDs in the topic
+          description: IDs of users who reacted (if includeReactionUsers is true)
           example:
           - 550e8400-e29b-41d4-a716-446655440001
-          - 550e8400-e29b-41d4-a716-446655440002
-        createdAt:
-          type: integer
-          format: int64
-          description: Unix timestamp in milliseconds when the topic was created
-          example: 1699564800000
-        updatedAt:
-          type: integer
-          format: int64
-          description: Unix timestamp in milliseconds when the topic was last updated
-          example: 1699564800000
-        externalId:
-          type: string
-          description: Optional external identifier if set when creating the topic
-          example: project-alpha
-    TopicMemberRemoveRequest:
-      type: object
-      required:
-      - memberIds
-      properties:
-        memberIds:
-          type: array
-          items:
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        text/plain:
+          schema:
             type: string
-            format: uuid
-          minItems: 1
-          maxItems: 5
-          description: Array of member IDs to remove from the topic (max 5). Members not in the topic are silently ignored. Duplicates are automatically removed.
-          example:
-          - 550e8400-e29b-41d4-a716-446655440003
-          - 550e8400-e29b-41d4-a716-446655440004
-    TopicCreateResponse:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-          description: The created topic ID
-        name:
-          type: string
-          description: The topic name
-        members:
-          type: array
-          items:
+          example: Topic not found
+    Unauthorized:
+      description: Unauthorized - invalid or missing API token
+      content:
+        text/plain:
+          schema:
             type: string
-          description: Array of member IDs in the topic (including the bot)
-          example:
-          - 550e8400-e29b-41d4-a716-446655440001
-          - b@660e8400-e29b-41d4-a716-446655440003
-        externalId:
-          type: string
-          description: The fully qualified external ID (bot_id:your_external_id). Only present if externalId was provided in the request.
-          example: b@660e8400-e29b-41d4-a716-446655440003:project-alpha
-        createdAt:
-          type: integer
-          format: int64
-          description: Unix timestamp in milliseconds
+          example: unauthorized
+    BadRequest:
+      description: Bad request - invalid input
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: text is required
+    InternalServerError:
+      description: Internal server error
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: internal server error
   parameters:
-    XSignature:
-      name: X-Signature
-      in: header
-      required: false
-      description: "HMAC signature of the request for authentication and replay protection.\n\n**Required only when authenticating with a static API key.** If you are using an OAuth access token (issued by `POST /oauth/token`), omit this header — the JWT carries all the authentication and integrity guarantees.\n\n**Replay Protection:** The signature includes a timestamp to prevent replay attacks.\nRequests with timestamps older than 5 minutes are rejected.\n\nThe signature payload differs by HTTP method:\n- **POST/PUT/PATCH/DELETE**: HMAC-SHA256 of `{timestamp}.{body}`\n- **GET**: HMAC-SHA256 of `{timestamp}.{uri}`\n\nThe signature is calculated as:\n1. Get the current Unix timestamp in milliseconds\n2. Determine the payload:\n   - For POST/PUT/PATCH/DELETE: Use `{timestamp}.{body}` where body is the request body\n   - For GET: Use `{timestamp}.{uri}` where uri is the full request URI (e.g., `/v2/members?limit=10`)\n3. Calculate HMAC-SHA256 of the combined payload using your API secret\n4. Hex-encode the output\n5. Include the timestamp in the `X-Timestamp` header\n\nExample for GET request to `/v2/members?limit=10`:\n```\ntimestamp = 1699564800000\npayload = \"1699564800000./v2/members?limit=10\"\nsignature = HMAC-SHA256(secret, payload)\nX-Signature: hex(signature)\nX-Timestamp: 1699564800000\n```\n\nExample for POST request with body `{\"topicId\":\"123\",\"text\":\"Hello\"}`:\n```\ntimestamp = 1699564800000\npayload = '1699564800000.{\"topicId\":\"123\",\"text\":\"Hello\"}'\nsignature = HMAC-SHA256(secret, payload)\nX-Signature: hex(signature)\nX-Timestamp: 1699564800000\n```\n\nFor `multipart/form-data` requests, sign the exact raw request body bytes\n(including boundaries and file bytes) as transmitted.\n"
-      schema:
-        type: string
-        pattern: ^[a-f0-9]{64}$
-        example: a3d5f8e7c2b1d4f6a8e9c7b5d3f1a2e4b6c8d0f2e4a6b8c0d2e4f6a8b0c2d4e6
     XTimestamp:
       name: X-Timestamp
       in: header
@@ -1129,6 +1120,15 @@ components:
         type: integer
         format: int64
         example: 1699564800000
+    XSignature:
+      name: X-Signature
+      in: header
+      required: false
+      description: "HMAC signature of the request for authentication and replay protection.\n\n**Required only when authenticating with a static API key.** If you are using an OAuth access token (issued by `POST /oauth/token`), omit this header — the JWT carries all the authentication and integrity guarantees.\n\n**Replay Protection:** The signature includes a timestamp to prevent replay attacks.\nRequests with timestamps older than 5 minutes are rejected.\n\nThe signature payload differs by HTTP method:\n- **POST/PUT/PATCH/DELETE**: HMAC-SHA256 of `{timestamp}.{body}`\n- **GET**: HMAC-SHA256 of `{timestamp}.{uri}`\n\nThe signature is calculated as:\n1. Get the current Unix timestamp in milliseconds\n2. Determine the payload:\n   - For POST/PUT/PATCH/DELETE: Use `{timestamp}.{body}` where body is the request body\n   - For GET: Use `{timestamp}.{uri}` where uri is the full request URI (e.g., `/v2/members?limit=10`)\n3. Calculate HMAC-SHA256 of the combined payload using your API secret\n4. Hex-encode the output\n5. Include the timestamp in the `X-Timestamp` header\n\nExample for GET request to `/v2/members?limit=10`:\n```\ntimestamp = 1699564800000\npayload = \"1699564800000./v2/members?limit=10\"\nsignature = HMAC-SHA256(secret, payload)\nX-Signature: hex(signature)\nX-Timestamp: 1699564800000\n```\n\nExample for POST request with body `{\"topicId\":\"123\",\"text\":\"Hello\"}`:\n```\ntimestamp = 1699564800000\npayload = '1699564800000.{\"topicId\":\"123\",\"text\":\"Hello\"}'\nsignature = HMAC-SHA256(secret, payload)\nX-Signature: hex(signature)\nX-Timestamp: 1699564800000\n```\n\nFor `multipart/form-data` requests, sign the exact raw request body bytes\n(including boundaries and file bytes) as transmitted.\n"
+      schema:
+        type: string
+        pattern: ^[a-f0-9]{64}$
+        example: a3d5f8e7c2b1d4f6a8e9c7b5d3f1a2e4b6c8d0f2e4a6b8c0d2e4f6a8b0c2d4e6
   securitySchemes:
     bearerAuth:
       type: http

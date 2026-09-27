@@ -1,6 +1,6 @@
 openapi: 3.2.0
 info:
-  title: Zenzap External Integration O Auth API
+  title: Zenzap External Integration OAuth API
   description: API for external applications to integrate with Zenzap.
   version: 2.0.0
   contact:
@@ -104,32 +104,6 @@ paths:
                 error_description: missing client_secret
 components:
   schemas:
-    OAuthTokenRequest:
-      type: object
-      required:
-      - grant_type
-      properties:
-        grant_type:
-          type: string
-          enum:
-          - client_credentials
-          description: OAuth 2.0 grant type. Only `client_credentials` is supported.
-        client_id:
-          type: string
-          description: The bot's OAuth `clientId` (returned when the bot was created or rotated). Omit if you authenticate via HTTP Basic Auth.
-          example: b@660e8400-e29b-41d4-a716-446655440003
-        client_secret:
-          type: string
-          description: The bot's OAuth `clientSecret`. Omit if you authenticate via HTTP Basic Auth.
-          example: very-long-random-secret
-        scope:
-          type: string
-          description: 'Space-separated list of OAuth scopes to request. Optional — if omitted, the issued token receives every scope the bot was granted at creation.
-
-            Passing a scope the bot was not granted will fail with `invalid_grant`.
-
-            '
-          example: channel:list message:send
     OAuthTokenResponse:
       type: object
       required:
@@ -173,6 +147,32 @@ components:
         error_description:
           type: string
           description: Human-readable explanation. Safe to surface to operators; not localized.
+    OAuthTokenRequest:
+      type: object
+      required:
+      - grant_type
+      properties:
+        grant_type:
+          type: string
+          enum:
+          - client_credentials
+          description: OAuth 2.0 grant type. Only `client_credentials` is supported.
+        client_id:
+          type: string
+          description: The bot's OAuth `clientId` (returned when the bot was created or rotated). Omit if you authenticate via HTTP Basic Auth.
+          example: b@660e8400-e29b-41d4-a716-446655440003
+        client_secret:
+          type: string
+          description: The bot's OAuth `clientSecret`. Omit if you authenticate via HTTP Basic Auth.
+          example: very-long-random-secret
+        scope:
+          type: string
+          description: 'Space-separated list of OAuth scopes to request. Optional — if omitted, the issued token receives every scope the bot was granted at creation.
+
+            Passing a scope the bot was not granted will fail with `invalid_grant`.
+
+            '
+          example: channel:list message:send
   securitySchemes:
     bearerAuth:
       type: http

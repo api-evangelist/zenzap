@@ -382,42 +382,6 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 components:
-  responses:
-    Forbidden:
-      description: Forbidden - you do not have permission to perform this action
-      content:
-        text/plain:
-          schema:
-            type: string
-          example: forbidden
-    BadRequest:
-      description: Bad request - invalid input
-      content:
-        text/plain:
-          schema:
-            type: string
-          example: text is required
-    InternalServerError:
-      description: Internal server error
-      content:
-        text/plain:
-          schema:
-            type: string
-          example: internal server error
-    NotFound:
-      description: Resource not found
-      content:
-        text/plain:
-          schema:
-            type: string
-          example: Topic not found
-    Unauthorized:
-      description: Unauthorized - invalid or missing API token
-      content:
-        text/plain:
-          schema:
-            type: string
-          example: unauthorized
   schemas:
     MessageReactionCreateRequest:
       type: object
@@ -429,6 +393,16 @@ components:
           description: Emoji reaction to add
           minLength: 1
           example: 👍
+    MessagePatchRequest:
+      type: object
+      required:
+      - text
+      properties:
+        text:
+          type: string
+          description: Updated message text (max 10000 characters)
+          maxLength: 10000
+          example: Updated message content
     MessageCreateRequest:
       type: object
       required:
@@ -456,31 +430,6 @@ components:
           maxLength: 61
           description: Optional external identifier for tracking purposes
           example: build-12345
-    MessageCreateResponse:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-          description: The created message ID
-        topicId:
-          type: string
-          format: uuid
-          description: The topic ID where the message was sent
-        createdAt:
-          type: integer
-          format: int64
-          description: Unix timestamp in milliseconds
-    MessagePatchRequest:
-      type: object
-      required:
-      - text
-      properties:
-        text:
-          type: string
-          description: Updated message text (max 10000 characters)
-          maxLength: 10000
-          example: Updated message content
     MessageReactionCreateResponse:
       type: object
       properties:
@@ -503,6 +452,18 @@ components:
           format: int64
           description: Unix timestamp in milliseconds
           example: 1699564800000
+    MessageFileUploadRequest:
+      type: object
+      required:
+      - metaPart
+      - filePart
+      properties:
+        metaPart:
+          $ref: '#/components/schemas/MessageFileMetaRequest'
+        filePart:
+          type: string
+          format: binary
+          description: File content to upload
     MessageFileMetaRequest:
       type: object
       required:
@@ -535,28 +496,58 @@ components:
 
             '
           default: false
-    MessageFileUploadRequest:
+    MessageCreateResponse:
       type: object
-      required:
-      - metaPart
-      - filePart
       properties:
-        metaPart:
-          $ref: '#/components/schemas/MessageFileMetaRequest'
-        filePart:
+        id:
           type: string
-          format: binary
-          description: File content to upload
+          format: uuid
+          description: The created message ID
+        topicId:
+          type: string
+          format: uuid
+          description: The topic ID where the message was sent
+        createdAt:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: Topic not found
+    Unauthorized:
+      description: Unauthorized - invalid or missing API token
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: unauthorized
+    Forbidden:
+      description: Forbidden - you do not have permission to perform this action
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: forbidden
+    BadRequest:
+      description: Bad request - invalid input
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: text is required
+    InternalServerError:
+      description: Internal server error
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: internal server error
   parameters:
-    XSignature:
-      name: X-Signature
-      in: header
-      required: false
-      description: "HMAC signature of the request for authentication and replay protection.\n\n**Required only when authenticating with a static API key.** If you are using an OAuth access token (issued by `POST /oauth/token`), omit this header — the JWT carries all the authentication and integrity guarantees.\n\n**Replay Protection:** The signature includes a timestamp to prevent replay attacks.\nRequests with timestamps older than 5 minutes are rejected.\n\nThe signature payload differs by HTTP method:\n- **POST/PUT/PATCH/DELETE**: HMAC-SHA256 of `{timestamp}.{body}`\n- **GET**: HMAC-SHA256 of `{timestamp}.{uri}`\n\nThe signature is calculated as:\n1. Get the current Unix timestamp in milliseconds\n2. Determine the payload:\n   - For POST/PUT/PATCH/DELETE: Use `{timestamp}.{body}` where body is the request body\n   - For GET: Use `{timestamp}.{uri}` where uri is the full request URI (e.g., `/v2/members?limit=10`)\n3. Calculate HMAC-SHA256 of the combined payload using your API secret\n4. Hex-encode the output\n5. Include the timestamp in the `X-Timestamp` header\n\nExample for GET request to `/v2/members?limit=10`:\n```\ntimestamp = 1699564800000\npayload = \"1699564800000./v2/members?limit=10\"\nsignature = HMAC-SHA256(secret, payload)\nX-Signature: hex(signature)\nX-Timestamp: 1699564800000\n```\n\nExample for POST request with body `{\"topicId\":\"123\",\"text\":\"Hello\"}`:\n```\ntimestamp = 1699564800000\npayload = '1699564800000.{\"topicId\":\"123\",\"text\":\"Hello\"}'\nsignature = HMAC-SHA256(secret, payload)\nX-Signature: hex(signature)\nX-Timestamp: 1699564800000\n```\n\nFor `multipart/form-data` requests, sign the exact raw request body bytes\n(including boundaries and file bytes) as transmitted.\n"
-      schema:
-        type: string
-        pattern: ^[a-f0-9]{64}$
-        example: a3d5f8e7c2b1d4f6a8e9c7b5d3f1a2e4b6c8d0f2e4a6b8c0d2e4f6a8b0c2d4e6
     XTimestamp:
       name: X-Timestamp
       in: header
@@ -573,6 +564,15 @@ components:
         type: integer
         format: int64
         example: 1699564800000
+    XSignature:
+      name: X-Signature
+      in: header
+      required: false
+      description: "HMAC signature of the request for authentication and replay protection.\n\n**Required only when authenticating with a static API key.** If you are using an OAuth access token (issued by `POST /oauth/token`), omit this header — the JWT carries all the authentication and integrity guarantees.\n\n**Replay Protection:** The signature includes a timestamp to prevent replay attacks.\nRequests with timestamps older than 5 minutes are rejected.\n\nThe signature payload differs by HTTP method:\n- **POST/PUT/PATCH/DELETE**: HMAC-SHA256 of `{timestamp}.{body}`\n- **GET**: HMAC-SHA256 of `{timestamp}.{uri}`\n\nThe signature is calculated as:\n1. Get the current Unix timestamp in milliseconds\n2. Determine the payload:\n   - For POST/PUT/PATCH/DELETE: Use `{timestamp}.{body}` where body is the request body\n   - For GET: Use `{timestamp}.{uri}` where uri is the full request URI (e.g., `/v2/members?limit=10`)\n3. Calculate HMAC-SHA256 of the combined payload using your API secret\n4. Hex-encode the output\n5. Include the timestamp in the `X-Timestamp` header\n\nExample for GET request to `/v2/members?limit=10`:\n```\ntimestamp = 1699564800000\npayload = \"1699564800000./v2/members?limit=10\"\nsignature = HMAC-SHA256(secret, payload)\nX-Signature: hex(signature)\nX-Timestamp: 1699564800000\n```\n\nExample for POST request with body `{\"topicId\":\"123\",\"text\":\"Hello\"}`:\n```\ntimestamp = 1699564800000\npayload = '1699564800000.{\"topicId\":\"123\",\"text\":\"Hello\"}'\nsignature = HMAC-SHA256(secret, payload)\nX-Signature: hex(signature)\nX-Timestamp: 1699564800000\n```\n\nFor `multipart/form-data` requests, sign the exact raw request body bytes\n(including boundaries and file bytes) as transmitted.\n"
+      schema:
+        type: string
+        pattern: ^[a-f0-9]{64}$
+        example: a3d5f8e7c2b1d4f6a8e9c7b5d3f1a2e4b6c8d0f2e4a6b8c0d2e4f6a8b0c2d4e6
   securitySchemes:
     bearerAuth:
       type: http

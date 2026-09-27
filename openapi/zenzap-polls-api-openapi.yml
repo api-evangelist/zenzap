@@ -308,6 +308,16 @@ paths:
           $ref: '#/components/responses/InternalServerError'
 components:
   schemas:
+    PollVoteCreateRequest:
+      type: object
+      required:
+      - optionId
+      properties:
+        optionId:
+          type: string
+          maxLength: 6
+          description: The ID of the option to vote for. Use the `id` values from the `options` array in the create poll response.
+          example: a1b2c3
     PollCreateResponse:
       type: object
       properties:
@@ -363,37 +373,6 @@ components:
           type: string
           description: Display text for this option.
           example: Bug fixes
-    PollVoteCreateResponse:
-      type: object
-      properties:
-        id:
-          type: string
-          description: Unique vote ID (composite of attachmentId, optionId, and voter profile ID).
-          example: 770e8400-e29b-41d4-a716-446655440099_a1b2c3_b@f951b968-bf80-4ee6-bbbe-6ca338f57fc6
-        attachmentId:
-          type: string
-          format: uuid
-          description: The poll's attachment ID.
-          example: 770e8400-e29b-41d4-a716-446655440099
-        optionId:
-          type: string
-          description: The option that was voted for.
-          example: a1b2c3
-        createdAt:
-          type: integer
-          format: int64
-          description: Vote creation timestamp in milliseconds.
-          example: 1699564800000
-    PollVoteCreateRequest:
-      type: object
-      required:
-      - optionId
-      properties:
-        optionId:
-          type: string
-          maxLength: 6
-          description: The ID of the option to vote for. Use the `id` values from the `options` array in the create poll response.
-          example: a1b2c3
     PollCreateRequest:
       type: object
       required:
@@ -443,16 +422,43 @@ components:
 
             '
           example: false
+    PollVoteCreateResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique vote ID (composite of attachmentId, optionId, and voter profile ID).
+          example: 770e8400-e29b-41d4-a716-446655440099_a1b2c3_b@f951b968-bf80-4ee6-bbbe-6ca338f57fc6
+        attachmentId:
+          type: string
+          format: uuid
+          description: The poll's attachment ID.
+          example: 770e8400-e29b-41d4-a716-446655440099
+        optionId:
+          type: string
+          description: The option that was voted for.
+          example: a1b2c3
+        createdAt:
+          type: integer
+          format: int64
+          description: Vote creation timestamp in milliseconds.
+          example: 1699564800000
+  responses:
+    Unauthorized:
+      description: Unauthorized - invalid or missing API token
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: unauthorized
+    InternalServerError:
+      description: Internal server error
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: internal server error
   parameters:
-    XSignature:
-      name: X-Signature
-      in: header
-      required: false
-      description: "HMAC signature of the request for authentication and replay protection.\n\n**Required only when authenticating with a static API key.** If you are using an OAuth access token (issued by `POST /oauth/token`), omit this header — the JWT carries all the authentication and integrity guarantees.\n\n**Replay Protection:** The signature includes a timestamp to prevent replay attacks.\nRequests with timestamps older than 5 minutes are rejected.\n\nThe signature payload differs by HTTP method:\n- **POST/PUT/PATCH/DELETE**: HMAC-SHA256 of `{timestamp}.{body}`\n- **GET**: HMAC-SHA256 of `{timestamp}.{uri}`\n\nThe signature is calculated as:\n1. Get the current Unix timestamp in milliseconds\n2. Determine the payload:\n   - For POST/PUT/PATCH/DELETE: Use `{timestamp}.{body}` where body is the request body\n   - For GET: Use `{timestamp}.{uri}` where uri is the full request URI (e.g., `/v2/members?limit=10`)\n3. Calculate HMAC-SHA256 of the combined payload using your API secret\n4. Hex-encode the output\n5. Include the timestamp in the `X-Timestamp` header\n\nExample for GET request to `/v2/members?limit=10`:\n```\ntimestamp = 1699564800000\npayload = \"1699564800000./v2/members?limit=10\"\nsignature = HMAC-SHA256(secret, payload)\nX-Signature: hex(signature)\nX-Timestamp: 1699564800000\n```\n\nExample for POST request with body `{\"topicId\":\"123\",\"text\":\"Hello\"}`:\n```\ntimestamp = 1699564800000\npayload = '1699564800000.{\"topicId\":\"123\",\"text\":\"Hello\"}'\nsignature = HMAC-SHA256(secret, payload)\nX-Signature: hex(signature)\nX-Timestamp: 1699564800000\n```\n\nFor `multipart/form-data` requests, sign the exact raw request body bytes\n(including boundaries and file bytes) as transmitted.\n"
-      schema:
-        type: string
-        pattern: ^[a-f0-9]{64}$
-        example: a3d5f8e7c2b1d4f6a8e9c7b5d3f1a2e4b6c8d0f2e4a6b8c0d2e4f6a8b0c2d4e6
     XTimestamp:
       name: X-Timestamp
       in: header
@@ -469,21 +475,15 @@ components:
         type: integer
         format: int64
         example: 1699564800000
-  responses:
-    InternalServerError:
-      description: Internal server error
-      content:
-        text/plain:
-          schema:
-            type: string
-          example: internal server error
-    Unauthorized:
-      description: Unauthorized - invalid or missing API token
-      content:
-        text/plain:
-          schema:
-            type: string
-          example: unauthorized
+    XSignature:
+      name: X-Signature
+      in: header
+      required: false
+      description: "HMAC signature of the request for authentication and replay protection.\n\n**Required only when authenticating with a static API key.** If you are using an OAuth access token (issued by `POST /oauth/token`), omit this header — the JWT carries all the authentication and integrity guarantees.\n\n**Replay Protection:** The signature includes a timestamp to prevent replay attacks.\nRequests with timestamps older than 5 minutes are rejected.\n\nThe signature payload differs by HTTP method:\n- **POST/PUT/PATCH/DELETE**: HMAC-SHA256 of `{timestamp}.{body}`\n- **GET**: HMAC-SHA256 of `{timestamp}.{uri}`\n\nThe signature is calculated as:\n1. Get the current Unix timestamp in milliseconds\n2. Determine the payload:\n   - For POST/PUT/PATCH/DELETE: Use `{timestamp}.{body}` where body is the request body\n   - For GET: Use `{timestamp}.{uri}` where uri is the full request URI (e.g., `/v2/members?limit=10`)\n3. Calculate HMAC-SHA256 of the combined payload using your API secret\n4. Hex-encode the output\n5. Include the timestamp in the `X-Timestamp` header\n\nExample for GET request to `/v2/members?limit=10`:\n```\ntimestamp = 1699564800000\npayload = \"1699564800000./v2/members?limit=10\"\nsignature = HMAC-SHA256(secret, payload)\nX-Signature: hex(signature)\nX-Timestamp: 1699564800000\n```\n\nExample for POST request with body `{\"topicId\":\"123\",\"text\":\"Hello\"}`:\n```\ntimestamp = 1699564800000\npayload = '1699564800000.{\"topicId\":\"123\",\"text\":\"Hello\"}'\nsignature = HMAC-SHA256(secret, payload)\nX-Signature: hex(signature)\nX-Timestamp: 1699564800000\n```\n\nFor `multipart/form-data` requests, sign the exact raw request body bytes\n(including boundaries and file bytes) as transmitted.\n"
+      schema:
+        type: string
+        pattern: ^[a-f0-9]{64}$
+        example: a3d5f8e7c2b1d4f6a8e9c7b5d3f1a2e4b6c8d0f2e4a6b8c0d2e4f6a8b0c2d4e6
   securitySchemes:
     bearerAuth:
       type: http

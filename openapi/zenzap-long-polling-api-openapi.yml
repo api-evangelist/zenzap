@@ -108,482 +108,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 components:
-  responses:
-    BadRequest:
-      description: Bad request - invalid input
-      content:
-        text/plain:
-          schema:
-            type: string
-          example: text is required
-    Conflict:
-      description: Conflict - request cannot be completed in current state
-      content:
-        text/plain:
-          schema:
-            type: string
-          example: delivery mode is not polling
-    Unauthorized:
-      description: Unauthorized - invalid or missing API token
-      content:
-        text/plain:
-          schema:
-            type: string
-          example: unauthorized
-    InternalServerError:
-      description: Internal server error
-      content:
-        text/plain:
-          schema:
-            type: string
-          example: internal server error
   schemas:
-    UpdatesResponse:
-      type: object
-      required:
-      - updates
-      - nextOffset
-      properties:
-        updates:
-          type: array
-          items:
-            $ref: '#/components/schemas/PollingUpdate'
-          description: Ordered list of updates after the provided offset
-        nextOffset:
-          type: string
-          description: Opaque offset to pass as `offset` in the next `/v2/updates` call
-          example: AAAAAAABAAAAAAAAAAABAA==
-    MessageMention:
-      type: object
-      properties:
-        id:
-          type: string
-          description: The mentioned profile ID
-          example: 550e8400-e29b-41d4-a716-446655440001
-        name:
-          type: string
-          description: Display name used for the mention text
-          example: Alice Johnson
-    WebhookTask:
-      type: object
-      description: 'Task snapshot sent when a task is created, updated, or its status changes.
-
-        The `action` field indicates what triggered this snapshot.
-
-        '
-      properties:
-        id:
-          type: string
-          description: The task ID
-        action:
-          type: string
-          enum:
-          - Added
-          - Updated
-          - Deleted
-          - MarkedAsDone
-          - MarkedAsOpened
-          - Replied
-          description: 'What triggered this task snapshot:
-
-            - `Added`: Task was created
-
-            - `Updated`: Task details were changed
-
-            - `Deleted`: Task was removed
-
-            - `MarkedAsDone`: Task was completed
-
-            - `MarkedAsOpened`: Task was reopened
-
-            - `Replied`: Comment was added to task
-
-            '
-        title:
-          type: string
-          description: Task title
-          example: Review documentation
-        text:
-          type: string
-          description: Task description
-          example: Please review the API docs by Friday
-        status:
-          type: string
-          enum:
-          - Open
-          - Done
-          description: Current task status
-        assignee:
-          type: string
-          description: User ID of the assignee
-          example: 550e8400-e29b-41d4-a716-446655440001
-        dueDate:
-          type: integer
-          format: int64
-          description: Due date as Unix timestamp in milliseconds
-          example: 1699651200000
-        isDueDateTimeSelected:
-          type: boolean
-          description: Whether a specific time was selected for the due date
-        parentId:
-          type: string
-          description: Parent task ID (for subtasks)
-        subItemsCount:
-          type: integer
-          description: Number of subtasks
-          example: 3
-    PollingUpdate:
-      type: object
-      required:
-      - updateId
-      - eventType
-      - createdAt
-      - data
-      properties:
-        updateId:
-          type: string
-          description: Opaque update identifier. Use as offset in subsequent polling calls.
-          example: AAAAAAABAAAAAAAAAAABAA==
-        eventType:
-          type: string
-          enum:
-          - message.created
-          - message.updated
-          - message.deleted
-          - reaction.added
-          - reaction.removed
-          - member.added
-          - member.removed
-          - topic.updated
-          description: The update event type
-          example: message.created
-        createdAt:
-          type: integer
-          format: int64
-          description: Unix timestamp in milliseconds when the update was created
-          example: 1699564800000
-        data:
-          description: Event payload. Structure matches the webhook `data` payload for the same event type.
-          oneOf:
-          - $ref: '#/components/schemas/WebhookMessageCreatedData'
-          - $ref: '#/components/schemas/WebhookMessageUpdatedData'
-          - $ref: '#/components/schemas/WebhookMessageDeletedData'
-          - $ref: '#/components/schemas/WebhookReactionData'
-          - $ref: '#/components/schemas/WebhookMemberData'
-          - $ref: '#/components/schemas/WebhookTopicUpdatedData'
-    WebhookMessageUpdatedData:
-      type: object
-      required:
-      - message
-      properties:
-        message:
-          $ref: '#/components/schemas/WebhookMessage'
-        updatedFields:
-          type: array
-          items:
-            type: string
-          description: List of fields that changed
-          example:
-          - text
-        truncated:
-          type: boolean
-          description: Whether the payload content was truncated
-          example: false
-    WebhookTopicUpdatedData:
-      type: object
-      required:
-      - topicId
-      properties:
-        topicId:
-          type: string
-          format: uuid
-          description: The topic that was updated
-        name:
-          type: string
-          description: New topic name (only present if changed)
-        description:
-          type: string
-          description: New topic description (only present if changed)
-        actorId:
-          type: string
-          description: The actor who made the update
-        changes:
-          type: object
-          description: Map of changed fields and their new values
-          additionalProperties: true
-    WebhookReactionData:
-      type: object
-      required:
-      - messageId
-      - topicId
-      - emoji
-      - userId
-      properties:
-        messageId:
-          type: string
-          format: uuid
-          description: The message that was reacted to
-        topicId:
-          type: string
-          format: uuid
-          description: The topic containing the message
-        emoji:
-          type: string
-          description: The emoji that was added/removed
-          example: 👍
-        userId:
-          type: string
-          description: The user who added/removed the reaction
-          example: 550e8400-e29b-41d4-a716-446655440001
-        reactionId:
-          type: string
-          format: uuid
-          description: Reaction ID (present when available)
-        createdAt:
-          type: integer
-          format: int64
-          description: Unix timestamp in milliseconds when the reaction event was created
-          example: 1699564800000
-        reaction:
-          $ref: '#/components/schemas/WebhookReactionObject'
-    WebhookReactionObject:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-          description: Reaction ID
-        messageId:
-          type: string
-          format: uuid
-          description: The reacted message ID
-        topicId:
-          type: string
-          format: uuid
-          description: Topic ID containing the message
-        userId:
-          type: string
-          description: The reacting user ID
-        emoji:
-          type: string
-          description: The reaction emoji
-    WebhookContact:
-      type: object
-      description: Shared contact information
-      properties:
-        name:
-          type: string
-          description: Contact name
-          example: John Doe
-        phoneNumbers:
-          type: array
-          items:
-            type: string
-          description: Phone numbers
-          example:
-          - '+1234567890'
-        emails:
-          type: array
-          items:
-            type: string
-          description: Email addresses
-          example:
-          - john@example.com
-        role:
-          type: string
-          description: Job title or role
-          example: Engineer
-        location:
-          type: string
-          description: Location or office
-          example: San Francisco
-        linkedIn:
-          type: string
-          description: LinkedIn profile URL
-          example: https://linkedin.com/in/johndoe
-        profileId:
-          type: string
-          description: Zenzap profile ID if the contact is a Zenzap user
-          example: 550e8400-e29b-41d4-a716-446655440001
-    WebhookMessageDeletedData:
-      type: object
-      required:
-      - messageId
-      - topicId
-      properties:
-        messageId:
-          type: string
-          format: uuid
-          description: The deleted message ID
-        topicId:
-          type: string
-          format: uuid
-          description: The topic where the message was deleted
-        deletedAt:
-          type: integer
-          format: int64
-          description: Unix timestamp in milliseconds when deletion occurred
-          example: 1699564800000
-        deletedBy:
-          type: string
-          description: The user ID who deleted the message
-        message:
-          type: object
-          description: Minimal message snapshot
-          properties:
-            id:
-              type: string
-              format: uuid
-            topicId:
-              type: string
-              format: uuid
-            senderId:
-              type: string
-    WebhookLocation:
-      type: object
-      description: Shared location data
-      properties:
-        latitude:
-          type: string
-          description: Latitude coordinate
-          example: '37.7749'
-        longitude:
-          type: string
-          description: Longitude coordinate
-          example: '-122.4194'
-        name:
-          type: string
-          description: Location name (optional)
-          example: San Francisco Office
-        address:
-          type: string
-          description: Street address (optional)
-          example: 123 Market St, San Francisco, CA
-    WebhookMessageCreatedData:
-      type: object
-      required:
-      - message
-      properties:
-        message:
-          $ref: '#/components/schemas/WebhookMessage'
-        truncated:
-          type: boolean
-          description: Whether the payload content was truncated
-          example: false
-    WebhookTranscription:
-      type: object
-      description: 'Transcription data for audio attachments (voice messages).
-
-
-        **Transcription flow:**
-
-        1. `message.created` arrives with `transcription.status: "Pending"`
-
-        2. `message.updated` arrives when transcription completes with `status: "Done"` and `text` populated
-
-        '
-      properties:
-        status:
-          type: string
-          enum:
-          - Pending
-          - Started
-          - Done
-          - Failed
-          description: 'Transcription status:
-
-            - `Pending`: Queued for transcription
-
-            - `Started`: Transcription in progress
-
-            - `Done`: Transcription complete, `text` field populated
-
-            - `Failed`: Transcription failed
-
-            '
-        text:
-          type: string
-          description: The transcribed text (only present when status is "Done")
-          example: Hey team, just a quick update on the project...
-    WebhookMemberData:
-      type: object
-      required:
-      - topicId
-      - memberIds
-      properties:
-        topicId:
-          type: string
-          format: uuid
-          description: The topic where the member was added/removed
-        memberIds:
-          type: array
-          items:
-            type: string
-          description: One or more member IDs affected by the operation
-          example:
-          - 550e8400-e29b-41d4-a716-446655440003
-        memberId:
-          type: string
-          description: Single member ID (present when exactly one member changed)
-          example: 550e8400-e29b-41d4-a716-446655440003
-        memberType:
-          type: string
-          enum:
-          - user
-          - bot
-          description: Type of member for single-member events
-          example: user
-        actorId:
-          type: string
-          description: The actor who triggered the member change
-          example: 550e8400-e29b-41d4-a716-446655440001
-        createdAt:
-          type: integer
-          format: int64
-          description: Unix timestamp in milliseconds when the event payload was created
-          example: 1699564800000
-    WebhookAttachment:
-      type: object
-      description: 'File attachment with download URL. URLs are signed and expire after 60 minutes.
-
-        Download files promptly after receiving the webhook.
-
-        '
-      properties:
-        id:
-          type: string
-          description: The attachment ID
-        type:
-          type: string
-          enum:
-          - image
-          - file
-          - video
-          - audio
-          description: The attachment type
-        name:
-          type: string
-          description: The original file name
-          example: document.pdf
-        url:
-          type: string
-          format: uri
-          description: 'Signed URL to download the attachment.
-
-            **Important:** URLs expire after 60 minutes.
-
-            '
-          example: https://storage.zenzap.co/attachments/...?token=...&expires=...
-        transcription:
-          $ref: '#/components/schemas/WebhookTranscription'
-      example:
-        id: att_550e8400-e29b-41d4-a716-446655440088
-        type: audio
-        name: voice-note.mp3
-        url: https://storage.zenzap.co/attachments/...
-        transcription:
-          status: Done
-          text: Hey team, just a quick update on the project...
     WebhookMessage:
       type: object
       description: 'Message object as delivered in webhook events. Includes additional fields
@@ -690,16 +215,482 @@ components:
           $ref: '#/components/schemas/WebhookTask'
         contact:
           $ref: '#/components/schemas/WebhookContact'
+    WebhookAttachment:
+      type: object
+      description: 'File attachment with download URL. URLs are signed and expire after 60 minutes.
+
+        Download files promptly after receiving the webhook.
+
+        '
+      properties:
+        id:
+          type: string
+          description: The attachment ID
+        type:
+          type: string
+          enum:
+          - image
+          - file
+          - video
+          - audio
+          description: The attachment type
+        name:
+          type: string
+          description: The original file name
+          example: document.pdf
+        url:
+          type: string
+          format: uri
+          description: 'Signed URL to download the attachment.
+
+            **Important:** URLs expire after 60 minutes.
+
+            '
+          example: https://storage.zenzap.co/attachments/...?token=...&expires=...
+        transcription:
+          $ref: '#/components/schemas/WebhookTranscription'
+      example:
+        id: att_550e8400-e29b-41d4-a716-446655440088
+        type: audio
+        name: voice-note.mp3
+        url: https://storage.zenzap.co/attachments/...
+        transcription:
+          status: Done
+          text: Hey team, just a quick update on the project...
+    PollingUpdate:
+      type: object
+      required:
+      - updateId
+      - eventType
+      - createdAt
+      - data
+      properties:
+        updateId:
+          type: string
+          description: Opaque update identifier. Use as offset in subsequent polling calls.
+          example: AAAAAAABAAAAAAAAAAABAA==
+        eventType:
+          type: string
+          enum:
+          - message.created
+          - message.updated
+          - message.deleted
+          - reaction.added
+          - reaction.removed
+          - member.added
+          - member.removed
+          - topic.updated
+          description: The update event type
+          example: message.created
+        createdAt:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds when the update was created
+          example: 1699564800000
+        data:
+          description: Event payload. Structure matches the webhook `data` payload for the same event type.
+          oneOf:
+          - $ref: '#/components/schemas/WebhookMessageCreatedData'
+          - $ref: '#/components/schemas/WebhookMessageUpdatedData'
+          - $ref: '#/components/schemas/WebhookMessageDeletedData'
+          - $ref: '#/components/schemas/WebhookReactionData'
+          - $ref: '#/components/schemas/WebhookMemberData'
+          - $ref: '#/components/schemas/WebhookTopicUpdatedData'
+    WebhookMemberData:
+      type: object
+      required:
+      - topicId
+      - memberIds
+      properties:
+        topicId:
+          type: string
+          format: uuid
+          description: The topic where the member was added/removed
+        memberIds:
+          type: array
+          items:
+            type: string
+          description: One or more member IDs affected by the operation
+          example:
+          - 550e8400-e29b-41d4-a716-446655440003
+        memberId:
+          type: string
+          description: Single member ID (present when exactly one member changed)
+          example: 550e8400-e29b-41d4-a716-446655440003
+        memberType:
+          type: string
+          enum:
+          - user
+          - bot
+          description: Type of member for single-member events
+          example: user
+        actorId:
+          type: string
+          description: The actor who triggered the member change
+          example: 550e8400-e29b-41d4-a716-446655440001
+        createdAt:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds when the event payload was created
+          example: 1699564800000
+    WebhookMessageCreatedData:
+      type: object
+      required:
+      - message
+      properties:
+        message:
+          $ref: '#/components/schemas/WebhookMessage'
+        truncated:
+          type: boolean
+          description: Whether the payload content was truncated
+          example: false
+    MessageMention:
+      type: object
+      properties:
+        id:
+          type: string
+          description: The mentioned profile ID
+          example: 550e8400-e29b-41d4-a716-446655440001
+        name:
+          type: string
+          description: Display name used for the mention text
+          example: Alice Johnson
+    WebhookContact:
+      type: object
+      description: Shared contact information
+      properties:
+        name:
+          type: string
+          description: Contact name
+          example: John Doe
+        phoneNumbers:
+          type: array
+          items:
+            type: string
+          description: Phone numbers
+          example:
+          - '+1234567890'
+        emails:
+          type: array
+          items:
+            type: string
+          description: Email addresses
+          example:
+          - john@example.com
+        role:
+          type: string
+          description: Job title or role
+          example: Engineer
+        location:
+          type: string
+          description: Location or office
+          example: San Francisco
+        linkedIn:
+          type: string
+          description: LinkedIn profile URL
+          example: https://linkedin.com/in/johndoe
+        profileId:
+          type: string
+          description: Zenzap profile ID if the contact is a Zenzap user
+          example: 550e8400-e29b-41d4-a716-446655440001
+    UpdatesResponse:
+      type: object
+      required:
+      - updates
+      - nextOffset
+      properties:
+        updates:
+          type: array
+          items:
+            $ref: '#/components/schemas/PollingUpdate'
+          description: Ordered list of updates after the provided offset
+        nextOffset:
+          type: string
+          description: Opaque offset to pass as `offset` in the next `/v2/updates` call
+          example: AAAAAAABAAAAAAAAAAABAA==
+    WebhookReactionObject:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Reaction ID
+        messageId:
+          type: string
+          format: uuid
+          description: The reacted message ID
+        topicId:
+          type: string
+          format: uuid
+          description: Topic ID containing the message
+        userId:
+          type: string
+          description: The reacting user ID
+        emoji:
+          type: string
+          description: The reaction emoji
+    WebhookMessageUpdatedData:
+      type: object
+      required:
+      - message
+      properties:
+        message:
+          $ref: '#/components/schemas/WebhookMessage'
+        updatedFields:
+          type: array
+          items:
+            type: string
+          description: List of fields that changed
+          example:
+          - text
+        truncated:
+          type: boolean
+          description: Whether the payload content was truncated
+          example: false
+    WebhookTask:
+      type: object
+      description: 'Task snapshot sent when a task is created, updated, or its status changes.
+
+        The `action` field indicates what triggered this snapshot.
+
+        '
+      properties:
+        id:
+          type: string
+          description: The task ID
+        action:
+          type: string
+          enum:
+          - Added
+          - Updated
+          - Deleted
+          - MarkedAsDone
+          - MarkedAsOpened
+          - Replied
+          description: 'What triggered this task snapshot:
+
+            - `Added`: Task was created
+
+            - `Updated`: Task details were changed
+
+            - `Deleted`: Task was removed
+
+            - `MarkedAsDone`: Task was completed
+
+            - `MarkedAsOpened`: Task was reopened
+
+            - `Replied`: Comment was added to task
+
+            '
+        title:
+          type: string
+          description: Task title
+          example: Review documentation
+        text:
+          type: string
+          description: Task description
+          example: Please review the API docs by Friday
+        status:
+          type: string
+          enum:
+          - Open
+          - Done
+          description: Current task status
+        assignee:
+          type: string
+          description: User ID of the assignee
+          example: 550e8400-e29b-41d4-a716-446655440001
+        dueDate:
+          type: integer
+          format: int64
+          description: Due date as Unix timestamp in milliseconds
+          example: 1699651200000
+        isDueDateTimeSelected:
+          type: boolean
+          description: Whether a specific time was selected for the due date
+        parentId:
+          type: string
+          description: Parent task ID (for subtasks)
+        subItemsCount:
+          type: integer
+          description: Number of subtasks
+          example: 3
+    WebhookTopicUpdatedData:
+      type: object
+      required:
+      - topicId
+      properties:
+        topicId:
+          type: string
+          format: uuid
+          description: The topic that was updated
+        name:
+          type: string
+          description: New topic name (only present if changed)
+        description:
+          type: string
+          description: New topic description (only present if changed)
+        actorId:
+          type: string
+          description: The actor who made the update
+        changes:
+          type: object
+          description: Map of changed fields and their new values
+          additionalProperties: true
+    WebhookReactionData:
+      type: object
+      required:
+      - messageId
+      - topicId
+      - emoji
+      - userId
+      properties:
+        messageId:
+          type: string
+          format: uuid
+          description: The message that was reacted to
+        topicId:
+          type: string
+          format: uuid
+          description: The topic containing the message
+        emoji:
+          type: string
+          description: The emoji that was added/removed
+          example: 👍
+        userId:
+          type: string
+          description: The user who added/removed the reaction
+          example: 550e8400-e29b-41d4-a716-446655440001
+        reactionId:
+          type: string
+          format: uuid
+          description: Reaction ID (present when available)
+        createdAt:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds when the reaction event was created
+          example: 1699564800000
+        reaction:
+          $ref: '#/components/schemas/WebhookReactionObject'
+    WebhookLocation:
+      type: object
+      description: Shared location data
+      properties:
+        latitude:
+          type: string
+          description: Latitude coordinate
+          example: '37.7749'
+        longitude:
+          type: string
+          description: Longitude coordinate
+          example: '-122.4194'
+        name:
+          type: string
+          description: Location name (optional)
+          example: San Francisco Office
+        address:
+          type: string
+          description: Street address (optional)
+          example: 123 Market St, San Francisco, CA
+    WebhookTranscription:
+      type: object
+      description: 'Transcription data for audio attachments (voice messages).
+
+
+        **Transcription flow:**
+
+        1. `message.created` arrives with `transcription.status: "Pending"`
+
+        2. `message.updated` arrives when transcription completes with `status: "Done"` and `text` populated
+
+        '
+      properties:
+        status:
+          type: string
+          enum:
+          - Pending
+          - Started
+          - Done
+          - Failed
+          description: 'Transcription status:
+
+            - `Pending`: Queued for transcription
+
+            - `Started`: Transcription in progress
+
+            - `Done`: Transcription complete, `text` field populated
+
+            - `Failed`: Transcription failed
+
+            '
+        text:
+          type: string
+          description: The transcribed text (only present when status is "Done")
+          example: Hey team, just a quick update on the project...
+    WebhookMessageDeletedData:
+      type: object
+      required:
+      - messageId
+      - topicId
+      properties:
+        messageId:
+          type: string
+          format: uuid
+          description: The deleted message ID
+        topicId:
+          type: string
+          format: uuid
+          description: The topic where the message was deleted
+        deletedAt:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds when deletion occurred
+          example: 1699564800000
+        deletedBy:
+          type: string
+          description: The user ID who deleted the message
+        message:
+          type: object
+          description: Minimal message snapshot
+          properties:
+            id:
+              type: string
+              format: uuid
+            topicId:
+              type: string
+              format: uuid
+            senderId:
+              type: string
+  responses:
+    Unauthorized:
+      description: Unauthorized - invalid or missing API token
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: unauthorized
+    BadRequest:
+      description: Bad request - invalid input
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: text is required
+    InternalServerError:
+      description: Internal server error
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: internal server error
+    Conflict:
+      description: Conflict - request cannot be completed in current state
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: delivery mode is not polling
   parameters:
-    XSignature:
-      name: X-Signature
-      in: header
-      required: false
-      description: "HMAC signature of the request for authentication and replay protection.\n\n**Required only when authenticating with a static API key.** If you are using an OAuth access token (issued by `POST /oauth/token`), omit this header — the JWT carries all the authentication and integrity guarantees.\n\n**Replay Protection:** The signature includes a timestamp to prevent replay attacks.\nRequests with timestamps older than 5 minutes are rejected.\n\nThe signature payload differs by HTTP method:\n- **POST/PUT/PATCH/DELETE**: HMAC-SHA256 of `{timestamp}.{body}`\n- **GET**: HMAC-SHA256 of `{timestamp}.{uri}`\n\nThe signature is calculated as:\n1. Get the current Unix timestamp in milliseconds\n2. Determine the payload:\n   - For POST/PUT/PATCH/DELETE: Use `{timestamp}.{body}` where body is the request body\n   - For GET: Use `{timestamp}.{uri}` where uri is the full request URI (e.g., `/v2/members?limit=10`)\n3. Calculate HMAC-SHA256 of the combined payload using your API secret\n4. Hex-encode the output\n5. Include the timestamp in the `X-Timestamp` header\n\nExample for GET request to `/v2/members?limit=10`:\n```\ntimestamp = 1699564800000\npayload = \"1699564800000./v2/members?limit=10\"\nsignature = HMAC-SHA256(secret, payload)\nX-Signature: hex(signature)\nX-Timestamp: 1699564800000\n```\n\nExample for POST request with body `{\"topicId\":\"123\",\"text\":\"Hello\"}`:\n```\ntimestamp = 1699564800000\npayload = '1699564800000.{\"topicId\":\"123\",\"text\":\"Hello\"}'\nsignature = HMAC-SHA256(secret, payload)\nX-Signature: hex(signature)\nX-Timestamp: 1699564800000\n```\n\nFor `multipart/form-data` requests, sign the exact raw request body bytes\n(including boundaries and file bytes) as transmitted.\n"
-      schema:
-        type: string
-        pattern: ^[a-f0-9]{64}$
-        example: a3d5f8e7c2b1d4f6a8e9c7b5d3f1a2e4b6c8d0f2e4a6b8c0d2e4f6a8b0c2d4e6
     XTimestamp:
       name: X-Timestamp
       in: header
@@ -716,6 +707,15 @@ components:
         type: integer
         format: int64
         example: 1699564800000
+    XSignature:
+      name: X-Signature
+      in: header
+      required: false
+      description: "HMAC signature of the request for authentication and replay protection.\n\n**Required only when authenticating with a static API key.** If you are using an OAuth access token (issued by `POST /oauth/token`), omit this header — the JWT carries all the authentication and integrity guarantees.\n\n**Replay Protection:** The signature includes a timestamp to prevent replay attacks.\nRequests with timestamps older than 5 minutes are rejected.\n\nThe signature payload differs by HTTP method:\n- **POST/PUT/PATCH/DELETE**: HMAC-SHA256 of `{timestamp}.{body}`\n- **GET**: HMAC-SHA256 of `{timestamp}.{uri}`\n\nThe signature is calculated as:\n1. Get the current Unix timestamp in milliseconds\n2. Determine the payload:\n   - For POST/PUT/PATCH/DELETE: Use `{timestamp}.{body}` where body is the request body\n   - For GET: Use `{timestamp}.{uri}` where uri is the full request URI (e.g., `/v2/members?limit=10`)\n3. Calculate HMAC-SHA256 of the combined payload using your API secret\n4. Hex-encode the output\n5. Include the timestamp in the `X-Timestamp` header\n\nExample for GET request to `/v2/members?limit=10`:\n```\ntimestamp = 1699564800000\npayload = \"1699564800000./v2/members?limit=10\"\nsignature = HMAC-SHA256(secret, payload)\nX-Signature: hex(signature)\nX-Timestamp: 1699564800000\n```\n\nExample for POST request with body `{\"topicId\":\"123\",\"text\":\"Hello\"}`:\n```\ntimestamp = 1699564800000\npayload = '1699564800000.{\"topicId\":\"123\",\"text\":\"Hello\"}'\nsignature = HMAC-SHA256(secret, payload)\nX-Signature: hex(signature)\nX-Timestamp: 1699564800000\n```\n\nFor `multipart/form-data` requests, sign the exact raw request body bytes\n(including boundaries and file bytes) as transmitted.\n"
+      schema:
+        type: string
+        pattern: ^[a-f0-9]{64}$
+        example: a3d5f8e7c2b1d4f6a8e9c7b5d3f1a2e4b6c8d0f2e4a6b8c0d2e4f6a8b0c2d4e6
   securitySchemes:
     bearerAuth:
       type: http

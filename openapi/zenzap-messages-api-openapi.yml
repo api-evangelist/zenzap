@@ -382,27 +382,80 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 components:
+  responses:
+    BadRequest:
+      description: Bad request - invalid input
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: text is required
+    Forbidden:
+      description: Forbidden - you do not have permission to perform this action
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: forbidden
+    Unauthorized:
+      description: Unauthorized - invalid or missing API token
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: unauthorized
+    NotFound:
+      description: Resource not found
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: Topic not found
+    InternalServerError:
+      description: Internal server error
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: internal server error
   schemas:
-    MessageReactionCreateRequest:
+    MessageCreateResponse:
       type: object
-      required:
-      - reaction
       properties:
+        id:
+          type: string
+          format: uuid
+          description: The created message ID
+        topicId:
+          type: string
+          format: uuid
+          description: The topic ID where the message was sent
+        createdAt:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds
+    MessageReactionCreateResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Reaction ID
+          example: 990e8400-e29b-41d4-a716-446655440005
+        messageId:
+          type: string
+          format: uuid
+          description: Message ID the reaction belongs to
+          example: 660e8400-e29b-41d4-a716-446655440001
         reaction:
           type: string
-          description: Emoji reaction to add
-          minLength: 1
+          description: The reaction emoji
           example: 👍
-    MessagePatchRequest:
-      type: object
-      required:
-      - text
-      properties:
-        text:
-          type: string
-          description: Updated message text (max 10000 characters)
-          maxLength: 10000
-          example: Updated message content
+        createdAt:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds
+          example: 1699564800000
     MessageCreateRequest:
       type: object
       required:
@@ -430,28 +483,6 @@ components:
           maxLength: 61
           description: Optional external identifier for tracking purposes
           example: build-12345
-    MessageReactionCreateResponse:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-          description: Reaction ID
-          example: 990e8400-e29b-41d4-a716-446655440005
-        messageId:
-          type: string
-          format: uuid
-          description: Message ID the reaction belongs to
-          example: 660e8400-e29b-41d4-a716-446655440001
-        reaction:
-          type: string
-          description: The reaction emoji
-          example: 👍
-        createdAt:
-          type: integer
-          format: int64
-          description: Unix timestamp in milliseconds
-          example: 1699564800000
     MessageFileUploadRequest:
       type: object
       required:
@@ -496,57 +527,26 @@ components:
 
             '
           default: false
-    MessageCreateResponse:
+    MessagePatchRequest:
       type: object
+      required:
+      - text
       properties:
-        id:
+        text:
           type: string
-          format: uuid
-          description: The created message ID
-        topicId:
+          description: Updated message text (max 10000 characters)
+          maxLength: 10000
+          example: Updated message content
+    MessageReactionCreateRequest:
+      type: object
+      required:
+      - reaction
+      properties:
+        reaction:
           type: string
-          format: uuid
-          description: The topic ID where the message was sent
-        createdAt:
-          type: integer
-          format: int64
-          description: Unix timestamp in milliseconds
-  responses:
-    NotFound:
-      description: Resource not found
-      content:
-        text/plain:
-          schema:
-            type: string
-          example: Topic not found
-    Unauthorized:
-      description: Unauthorized - invalid or missing API token
-      content:
-        text/plain:
-          schema:
-            type: string
-          example: unauthorized
-    Forbidden:
-      description: Forbidden - you do not have permission to perform this action
-      content:
-        text/plain:
-          schema:
-            type: string
-          example: forbidden
-    BadRequest:
-      description: Bad request - invalid input
-      content:
-        text/plain:
-          schema:
-            type: string
-          example: text is required
-    InternalServerError:
-      description: Internal server error
-      content:
-        text/plain:
-          schema:
-            type: string
-          example: internal server error
+          description: Emoji reaction to add
+          minLength: 1
+          example: 👍
   parameters:
     XTimestamp:
       name: X-Timestamp

@@ -308,6 +308,27 @@ paths:
           $ref: '#/components/responses/InternalServerError'
 components:
   schemas:
+    PollVoteCreateResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique vote ID (composite of attachmentId, optionId, and voter profile ID).
+          example: 770e8400-e29b-41d4-a716-446655440099_a1b2c3_b@f951b968-bf80-4ee6-bbbe-6ca338f57fc6
+        attachmentId:
+          type: string
+          format: uuid
+          description: The poll's attachment ID.
+          example: 770e8400-e29b-41d4-a716-446655440099
+        optionId:
+          type: string
+          description: The option that was voted for.
+          example: a1b2c3
+        createdAt:
+          type: integer
+          format: int64
+          description: Vote creation timestamp in milliseconds.
+          example: 1699564800000
     PollVoteCreateRequest:
       type: object
       required:
@@ -422,42 +443,6 @@ components:
 
             '
           example: false
-    PollVoteCreateResponse:
-      type: object
-      properties:
-        id:
-          type: string
-          description: Unique vote ID (composite of attachmentId, optionId, and voter profile ID).
-          example: 770e8400-e29b-41d4-a716-446655440099_a1b2c3_b@f951b968-bf80-4ee6-bbbe-6ca338f57fc6
-        attachmentId:
-          type: string
-          format: uuid
-          description: The poll's attachment ID.
-          example: 770e8400-e29b-41d4-a716-446655440099
-        optionId:
-          type: string
-          description: The option that was voted for.
-          example: a1b2c3
-        createdAt:
-          type: integer
-          format: int64
-          description: Vote creation timestamp in milliseconds.
-          example: 1699564800000
-  responses:
-    Unauthorized:
-      description: Unauthorized - invalid or missing API token
-      content:
-        text/plain:
-          schema:
-            type: string
-          example: unauthorized
-    InternalServerError:
-      description: Internal server error
-      content:
-        text/plain:
-          schema:
-            type: string
-          example: internal server error
   parameters:
     XTimestamp:
       name: X-Timestamp
@@ -484,6 +469,21 @@ components:
         type: string
         pattern: ^[a-f0-9]{64}$
         example: a3d5f8e7c2b1d4f6a8e9c7b5d3f1a2e4b6c8d0f2e4a6b8c0d2e4f6a8b0c2d4e6
+  responses:
+    Unauthorized:
+      description: Unauthorized - invalid or missing API token
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: unauthorized
+    InternalServerError:
+      description: Internal server error
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: internal server error
   securitySchemes:
     bearerAuth:
       type: http

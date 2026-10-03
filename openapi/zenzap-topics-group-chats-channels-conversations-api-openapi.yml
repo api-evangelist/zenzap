@@ -713,7 +713,57 @@ paths:
           $ref: '#/components/responses/InternalServerError'
 components:
   schemas:
-    TopicGetResponse:
+    TopicMemberAddRequest:
+      type: object
+      required:
+      - memberIds
+      properties:
+        memberIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          minItems: 1
+          maxItems: 5
+          description: Array of member IDs to add to the topic (max 5). All members must be from the same organization as the bot and must not already be members of the topic. Duplicate IDs in the request are automatically removed.
+          example:
+          - 550e8400-e29b-41d4-a716-446655440003
+          - 550e8400-e29b-41d4-a716-446655440004
+    TopicMemberRemoveRequest:
+      type: object
+      required:
+      - memberIds
+      properties:
+        memberIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          minItems: 1
+          maxItems: 5
+          description: Array of member IDs to remove from the topic (max 5). Members not in the topic are silently ignored. Duplicates are automatically removed.
+          example:
+          - 550e8400-e29b-41d4-a716-446655440003
+          - 550e8400-e29b-41d4-a716-446655440004
+    MessageReaction:
+      type: object
+      properties:
+        emoji:
+          type: string
+          description: The emoji used for the reaction
+          example: 👍
+        count:
+          type: integer
+          description: Number of users who reacted with this emoji
+          example: 3
+        userIds:
+          type: array
+          items:
+            type: string
+          description: IDs of users who reacted (if includeReactionUsers is true)
+          example:
+          - 550e8400-e29b-41d4-a716-446655440001
+    TopicMemberUpdateResponse:
       type: object
       properties:
         id:
@@ -721,22 +771,19 @@ components:
           format: uuid
           description: The topic ID
           example: 550e8400-e29b-41d4-a716-446655440000
-        name:
-          type: string
-          description: The topic name
-          example: Project Updates
-        description:
-          type: string
-          description: The topic description
-          example: Discussion for project milestones
         memberIds:
           type: array
           items:
             type: string
-          description: Array of member IDs in the topic
+          description: Updated array of member IDs in the topic
           example:
           - 550e8400-e29b-41d4-a716-446655440001
           - 550e8400-e29b-41d4-a716-446655440002
+        updatedAt:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds when the topic was updated
+          example: 1699564800000
     TopicPatchRequest:
       type: object
       description: At least one of name or description must be provided
@@ -815,62 +862,6 @@ components:
           type: string
           description: Optional external identifier if set when creating the topic
           example: project-alpha
-    TopicCreateResponse:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-          description: The created topic ID
-        name:
-          type: string
-          description: The topic name
-        members:
-          type: array
-          items:
-            type: string
-          description: Array of member IDs in the topic (including the bot)
-          example:
-          - 550e8400-e29b-41d4-a716-446655440001
-          - b@660e8400-e29b-41d4-a716-446655440003
-        externalId:
-          type: string
-          description: The fully qualified external ID (bot_id:your_external_id). Only present if externalId was provided in the request.
-          example: b@660e8400-e29b-41d4-a716-446655440003:project-alpha
-        createdAt:
-          type: integer
-          format: int64
-          description: Unix timestamp in milliseconds
-    TopicsListResponse:
-      type: object
-      properties:
-        topics:
-          type: array
-          items:
-            $ref: '#/components/schemas/TopicListItem'
-          description: Array of topic objects
-        nextCursor:
-          type: string
-          description: Cursor for the next page. Omitted when there are no more results.
-        hasMore:
-          type: boolean
-          description: Whether there are more topics available.
-    TopicMemberAddRequest:
-      type: object
-      required:
-      - memberIds
-      properties:
-        memberIds:
-          type: array
-          items:
-            type: string
-            format: uuid
-          minItems: 1
-          maxItems: 5
-          description: Array of member IDs to add to the topic (max 5). All members must be from the same organization as the bot and must not already be members of the topic. Duplicate IDs in the request are automatically removed.
-          example:
-          - 550e8400-e29b-41d4-a716-446655440003
-          - 550e8400-e29b-41d4-a716-446655440004
     MessageItem:
       type: object
       properties:
@@ -941,90 +932,6 @@ components:
           items:
             $ref: '#/components/schemas/MessageReaction'
           description: Array of reactions to the message
-    MessageMention:
-      type: object
-      properties:
-        id:
-          type: string
-          description: The mentioned profile ID
-          example: 550e8400-e29b-41d4-a716-446655440001
-        name:
-          type: string
-          description: Display name used for the mention text
-          example: Alice Johnson
-    MessageAttachment:
-      type: object
-      properties:
-        id:
-          type: string
-          description: The attachment ID
-        type:
-          type: string
-          enum:
-          - image
-          - file
-          - video
-          - audio
-          description: The attachment type
-        name:
-          type: string
-          description: The file name
-        url:
-          type: string
-          description: URL to download the attachment
-    TopicMemberRemoveRequest:
-      type: object
-      required:
-      - memberIds
-      properties:
-        memberIds:
-          type: array
-          items:
-            type: string
-            format: uuid
-          minItems: 1
-          maxItems: 5
-          description: Array of member IDs to remove from the topic (max 5). Members not in the topic are silently ignored. Duplicates are automatically removed.
-          example:
-          - 550e8400-e29b-41d4-a716-446655440003
-          - 550e8400-e29b-41d4-a716-446655440004
-    TopicMemberUpdateResponse:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-          description: The topic ID
-          example: 550e8400-e29b-41d4-a716-446655440000
-        memberIds:
-          type: array
-          items:
-            type: string
-          description: Updated array of member IDs in the topic
-          example:
-          - 550e8400-e29b-41d4-a716-446655440001
-          - 550e8400-e29b-41d4-a716-446655440002
-        updatedAt:
-          type: integer
-          format: int64
-          description: Unix timestamp in milliseconds when the topic was updated
-          example: 1699564800000
-    TopicMessagesResponse:
-      type: object
-      properties:
-        messages:
-          type: array
-          items:
-            $ref: '#/components/schemas/MessageItem'
-          description: Array of message objects
-        nextCursor:
-          type: string
-          description: Cursor for the next page. Pass this value to the `cursor` parameter to get the next page.
-          example: eyJ0IjoxNjk5NTY0NzAwMDAwLCJpZCI6IjY2MGU4NDAwLWUyOWItNDFkNC1hNzE2LTQ0NjY1NTQ0MDAwMiIsIm8iOiJkZXNjIn0=
-        hasMore:
-          type: boolean
-          description: Whether there are more messages to fetch
-          example: true
     TopicCreateRequest:
       type: object
       required:
@@ -1056,24 +963,117 @@ components:
           maxLength: 100
           description: Optional external identifier for tracking purposes. Must be unique per bot - you cannot reuse the same external ID for multiple topics.
           example: project-alpha
-    MessageReaction:
+    TopicMessagesResponse:
       type: object
       properties:
-        emoji:
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/MessageItem'
+          description: Array of message objects
+        nextCursor:
           type: string
-          description: The emoji used for the reaction
-          example: 👍
-        count:
-          type: integer
-          description: Number of users who reacted with this emoji
-          example: 3
-        userIds:
+          description: Cursor for the next page. Pass this value to the `cursor` parameter to get the next page.
+          example: eyJ0IjoxNjk5NTY0NzAwMDAwLCJpZCI6IjY2MGU4NDAwLWUyOWItNDFkNC1hNzE2LTQ0NjY1NTQ0MDAwMiIsIm8iOiJkZXNjIn0=
+        hasMore:
+          type: boolean
+          description: Whether there are more messages to fetch
+          example: true
+    TopicCreateResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The created topic ID
+        name:
+          type: string
+          description: The topic name
+        members:
           type: array
           items:
             type: string
-          description: IDs of users who reacted (if includeReactionUsers is true)
+          description: Array of member IDs in the topic (including the bot)
           example:
           - 550e8400-e29b-41d4-a716-446655440001
+          - b@660e8400-e29b-41d4-a716-446655440003
+        externalId:
+          type: string
+          description: The fully qualified external ID (bot_id:your_external_id). Only present if externalId was provided in the request.
+          example: b@660e8400-e29b-41d4-a716-446655440003:project-alpha
+        createdAt:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds
+    TopicGetResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The topic ID
+          example: 550e8400-e29b-41d4-a716-446655440000
+        name:
+          type: string
+          description: The topic name
+          example: Project Updates
+        description:
+          type: string
+          description: The topic description
+          example: Discussion for project milestones
+        memberIds:
+          type: array
+          items:
+            type: string
+          description: Array of member IDs in the topic
+          example:
+          - 550e8400-e29b-41d4-a716-446655440001
+          - 550e8400-e29b-41d4-a716-446655440002
+    MessageAttachment:
+      type: object
+      properties:
+        id:
+          type: string
+          description: The attachment ID
+        type:
+          type: string
+          enum:
+          - image
+          - file
+          - video
+          - audio
+          description: The attachment type
+        name:
+          type: string
+          description: The file name
+        url:
+          type: string
+          description: URL to download the attachment
+    MessageMention:
+      type: object
+      properties:
+        id:
+          type: string
+          description: The mentioned profile ID
+          example: 550e8400-e29b-41d4-a716-446655440001
+        name:
+          type: string
+          description: Display name used for the mention text
+          example: Alice Johnson
+    TopicsListResponse:
+      type: object
+      properties:
+        topics:
+          type: array
+          items:
+            $ref: '#/components/schemas/TopicListItem'
+          description: Array of topic objects
+        nextCursor:
+          type: string
+          description: Cursor for the next page. Omitted when there are no more results.
+        hasMore:
+          type: boolean
+          description: Whether there are more topics available.
   responses:
     NotFound:
       description: Resource not found
@@ -1082,13 +1082,6 @@ components:
           schema:
             type: string
           example: Topic not found
-    Unauthorized:
-      description: Unauthorized - invalid or missing API token
-      content:
-        text/plain:
-          schema:
-            type: string
-          example: unauthorized
     BadRequest:
       description: Bad request - invalid input
       content:
@@ -1096,6 +1089,13 @@ components:
           schema:
             type: string
           example: text is required
+    Unauthorized:
+      description: Unauthorized - invalid or missing API token
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: unauthorized
     InternalServerError:
       description: Internal server error
       content:

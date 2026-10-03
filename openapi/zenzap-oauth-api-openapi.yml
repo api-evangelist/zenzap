@@ -104,32 +104,6 @@ paths:
                 error_description: missing client_secret
 components:
   schemas:
-    OAuthTokenResponse:
-      type: object
-      required:
-      - access_token
-      - token_type
-      - expires_in
-      properties:
-        access_token:
-          type: string
-          description: 'JWT bearer token. Pass as `Authorization: Bearer <access_token>` on every API request.
-
-            '
-        token_type:
-          type: string
-          enum:
-          - Bearer
-          description: Always `Bearer`.
-        expires_in:
-          type: integer
-          format: int64
-          description: Token lifetime in seconds (default 3600 = 1 hour).
-          example: 3600
-        scope:
-          type: string
-          description: Space-separated list of scopes granted to this token.
-          example: channel:list message:send
     OAuthErrorResponse:
       type: object
       required:
@@ -172,6 +146,32 @@ components:
             Passing a scope the bot was not granted will fail with `invalid_grant`.
 
             '
+          example: channel:list message:send
+    OAuthTokenResponse:
+      type: object
+      required:
+      - access_token
+      - token_type
+      - expires_in
+      properties:
+        access_token:
+          type: string
+          description: 'JWT bearer token. Pass as `Authorization: Bearer <access_token>` on every API request.
+
+            '
+        token_type:
+          type: string
+          enum:
+          - Bearer
+          description: Always `Bearer`.
+        expires_in:
+          type: integer
+          format: int64
+          description: Token lifetime in seconds (default 3600 = 1 hour).
+          example: 3600
+        scope:
+          type: string
+          description: Space-separated list of scopes granted to this token.
           example: channel:list message:send
   securitySchemes:
     bearerAuth:

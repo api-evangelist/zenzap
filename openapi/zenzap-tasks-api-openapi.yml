@@ -329,35 +329,6 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 components:
-  responses:
-    BadRequest:
-      description: Bad request - invalid input
-      content:
-        text/plain:
-          schema:
-            type: string
-          example: text is required
-    InternalServerError:
-      description: Internal server error
-      content:
-        text/plain:
-          schema:
-            type: string
-          example: internal server error
-    Unauthorized:
-      description: Unauthorized - invalid or missing API token
-      content:
-        text/plain:
-          schema:
-            type: string
-          example: unauthorized
-    NotFound:
-      description: Resource not found
-      content:
-        text/plain:
-          schema:
-            type: string
-          example: Topic not found
   schemas:
     TaskCreateResponse:
       type: object
@@ -377,46 +348,42 @@ components:
           type: integer
           format: int64
           description: Unix timestamp in milliseconds
-    TaskPatchRequest:
+    TaskCreateRequest:
       type: object
-      description: Partial task update payload. At least one field must be provided.
+      required:
+      - topicId
+      - title
       properties:
         topicId:
           type: string
           format: uuid
-          description: Required when `status` is provided.
+          description: The ID of the topic where the task should be created
           example: 550e8400-e29b-41d4-a716-446655440000
-        name:
-          type: string
-          maxLength: 256
-          description: Task title (alias of `title`). Provide either `name` or `title`.
-          example: Review webhook integration docs
         title:
           type: string
           maxLength: 256
-          description: Task title. Provide either `title` or `name`.
-          example: Review webhook integration docs
+          description: The task title
+          example: Review documentation
         description:
           type: string
           maxLength: 10000
-          description: Task description
-          example: Update docs with long polling + multipart examples
+          description: Optional task description
+          example: Review and update all API documentation
         assignee:
           type: string
-          description: Assignee profile ID. Empty string removes assignee.
+          format: uuid
+          description: Optional user ID to assign the task to
           example: 550e8400-e29b-41d4-a716-446655440001
         dueDate:
           type: integer
           format: int64
-          description: Due date as Unix timestamp in milliseconds. Set to `0` to clear.
+          description: Optional due date as Unix timestamp in milliseconds
           example: 1699564800000
-        status:
+        externalId:
           type: string
-          description: Task status
-          enum:
-          - Open
-          - Done
-          example: Done
+          maxLength: 100
+          description: Optional external identifier for tracking purposes
+          example: jira-PROJ-123
     TaskResponse:
       type: object
       properties:
@@ -498,42 +465,75 @@ components:
         hasMore:
           type: boolean
           description: Whether there are more tasks available.
-    TaskCreateRequest:
+    TaskPatchRequest:
       type: object
-      required:
-      - topicId
-      - title
+      description: Partial task update payload. At least one field must be provided.
       properties:
         topicId:
           type: string
           format: uuid
-          description: The ID of the topic where the task should be created
+          description: Required when `status` is provided.
           example: 550e8400-e29b-41d4-a716-446655440000
+        name:
+          type: string
+          maxLength: 256
+          description: Task title (alias of `title`). Provide either `name` or `title`.
+          example: Review webhook integration docs
         title:
           type: string
           maxLength: 256
-          description: The task title
-          example: Review documentation
+          description: Task title. Provide either `title` or `name`.
+          example: Review webhook integration docs
         description:
           type: string
           maxLength: 10000
-          description: Optional task description
-          example: Review and update all API documentation
+          description: Task description
+          example: Update docs with long polling + multipart examples
         assignee:
           type: string
-          format: uuid
-          description: Optional user ID to assign the task to
+          description: Assignee profile ID. Empty string removes assignee.
           example: 550e8400-e29b-41d4-a716-446655440001
         dueDate:
           type: integer
           format: int64
-          description: Optional due date as Unix timestamp in milliseconds
+          description: Due date as Unix timestamp in milliseconds. Set to `0` to clear.
           example: 1699564800000
-        externalId:
+        status:
           type: string
-          maxLength: 100
-          description: Optional external identifier for tracking purposes
-          example: jira-PROJ-123
+          description: Task status
+          enum:
+          - Open
+          - Done
+          example: Done
+  responses:
+    Unauthorized:
+      description: Unauthorized - invalid or missing API token
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: unauthorized
+    NotFound:
+      description: Resource not found
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: Topic not found
+    BadRequest:
+      description: Bad request - invalid input
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: text is required
+    InternalServerError:
+      description: Internal server error
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: internal server error
   parameters:
     XTimestamp:
       name: X-Timestamp

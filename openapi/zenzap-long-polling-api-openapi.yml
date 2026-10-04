@@ -109,6 +109,218 @@ paths:
           $ref: '#/components/responses/InternalServerError'
 components:
   schemas:
+    WebhookReactionObject:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Reaction ID
+        messageId:
+          type: string
+          format: uuid
+          description: The reacted message ID
+        topicId:
+          type: string
+          format: uuid
+          description: Topic ID containing the message
+        userId:
+          type: string
+          description: The reacting user ID
+        emoji:
+          type: string
+          description: The reaction emoji
+    MessageMention:
+      type: object
+      properties:
+        id:
+          type: string
+          description: The mentioned profile ID
+          example: 550e8400-e29b-41d4-a716-446655440001
+        name:
+          type: string
+          description: Display name used for the mention text
+          example: Alice Johnson
+    WebhookMessageUpdatedData:
+      type: object
+      required:
+      - message
+      properties:
+        message:
+          $ref: '#/components/schemas/WebhookMessage'
+        updatedFields:
+          type: array
+          items:
+            type: string
+          description: List of fields that changed
+          example:
+          - text
+        truncated:
+          type: boolean
+          description: Whether the payload content was truncated
+          example: false
+    WebhookContact:
+      type: object
+      description: Shared contact information
+      properties:
+        name:
+          type: string
+          description: Contact name
+          example: John Doe
+        phoneNumbers:
+          type: array
+          items:
+            type: string
+          description: Phone numbers
+          example:
+          - '+1234567890'
+        emails:
+          type: array
+          items:
+            type: string
+          description: Email addresses
+          example:
+          - john@example.com
+        role:
+          type: string
+          description: Job title or role
+          example: Engineer
+        location:
+          type: string
+          description: Location or office
+          example: San Francisco
+        linkedIn:
+          type: string
+          description: LinkedIn profile URL
+          example: https://linkedin.com/in/johndoe
+        profileId:
+          type: string
+          description: Zenzap profile ID if the contact is a Zenzap user
+          example: 550e8400-e29b-41d4-a716-446655440001
+    PollingUpdate:
+      type: object
+      required:
+      - updateId
+      - eventType
+      - createdAt
+      - data
+      properties:
+        updateId:
+          type: string
+          description: Opaque update identifier. Use as offset in subsequent polling calls.
+          example: AAAAAAABAAAAAAAAAAABAA==
+        eventType:
+          type: string
+          enum:
+          - message.created
+          - message.updated
+          - message.deleted
+          - reaction.added
+          - reaction.removed
+          - member.added
+          - member.removed
+          - topic.updated
+          description: The update event type
+          example: message.created
+        createdAt:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds when the update was created
+          example: 1699564800000
+        data:
+          description: Event payload. Structure matches the webhook `data` payload for the same event type.
+          oneOf:
+          - $ref: '#/components/schemas/WebhookMessageCreatedData'
+          - $ref: '#/components/schemas/WebhookMessageUpdatedData'
+          - $ref: '#/components/schemas/WebhookMessageDeletedData'
+          - $ref: '#/components/schemas/WebhookReactionData'
+          - $ref: '#/components/schemas/WebhookMemberData'
+          - $ref: '#/components/schemas/WebhookTopicUpdatedData'
+    WebhookReactionData:
+      type: object
+      required:
+      - messageId
+      - topicId
+      - emoji
+      - userId
+      properties:
+        messageId:
+          type: string
+          format: uuid
+          description: The message that was reacted to
+        topicId:
+          type: string
+          format: uuid
+          description: The topic containing the message
+        emoji:
+          type: string
+          description: The emoji that was added/removed
+          example: 👍
+        userId:
+          type: string
+          description: The user who added/removed the reaction
+          example: 550e8400-e29b-41d4-a716-446655440001
+        reactionId:
+          type: string
+          format: uuid
+          description: Reaction ID (present when available)
+        createdAt:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds when the reaction event was created
+          example: 1699564800000
+        reaction:
+          $ref: '#/components/schemas/WebhookReactionObject'
+    WebhookTranscription:
+      type: object
+      description: 'Transcription data for audio attachments (voice messages).
+
+
+        **Transcription flow:**
+
+        1. `message.created` arrives with `transcription.status: "Pending"`
+
+        2. `message.updated` arrives when transcription completes with `status: "Done"` and `text` populated
+
+        '
+      properties:
+        status:
+          type: string
+          enum:
+          - Pending
+          - Started
+          - Done
+          - Failed
+          description: 'Transcription status:
+
+            - `Pending`: Queued for transcription
+
+            - `Started`: Transcription in progress
+
+            - `Done`: Transcription complete, `text` field populated
+
+            - `Failed`: Transcription failed
+
+            '
+        text:
+          type: string
+          description: The transcribed text (only present when status is "Done")
+          example: Hey team, just a quick update on the project...
+    UpdatesResponse:
+      type: object
+      required:
+      - updates
+      - nextOffset
+      properties:
+        updates:
+          type: array
+          items:
+            $ref: '#/components/schemas/PollingUpdate'
+          description: Ordered list of updates after the provided offset
+        nextOffset:
+          type: string
+          description: Opaque offset to pass as `offset` in the next `/v2/updates` call
+          example: AAAAAAABAAAAAAAAAAABAA==
     WebhookLocation:
       type: object
       description: Shared location data
@@ -129,24 +341,6 @@ components:
           type: string
           description: Street address (optional)
           example: 123 Market St, San Francisco, CA
-    WebhookMessageUpdatedData:
-      type: object
-      required:
-      - message
-      properties:
-        message:
-          $ref: '#/components/schemas/WebhookMessage'
-        updatedFields:
-          type: array
-          items:
-            type: string
-          description: List of fields that changed
-          example:
-          - text
-        truncated:
-          type: boolean
-          description: Whether the payload content was truncated
-          example: false
     WebhookTopicUpdatedData:
       type: object
       required:
@@ -169,6 +363,51 @@ components:
           type: object
           description: Map of changed fields and their new values
           additionalProperties: true
+    WebhookMessageCreatedData:
+      type: object
+      required:
+      - message
+      properties:
+        message:
+          $ref: '#/components/schemas/WebhookMessage'
+        truncated:
+          type: boolean
+          description: Whether the payload content was truncated
+          example: false
+    WebhookMessageDeletedData:
+      type: object
+      required:
+      - messageId
+      - topicId
+      properties:
+        messageId:
+          type: string
+          format: uuid
+          description: The deleted message ID
+        topicId:
+          type: string
+          format: uuid
+          description: The topic where the message was deleted
+        deletedAt:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds when deletion occurred
+          example: 1699564800000
+        deletedBy:
+          type: string
+          description: The user ID who deleted the message
+        message:
+          type: object
+          description: Minimal message snapshot
+          properties:
+            id:
+              type: string
+              format: uuid
+            topicId:
+              type: string
+              format: uuid
+            senderId:
+              type: string
     WebhookTask:
       type: object
       description: 'Task snapshot sent when a task is created, updated, or its status changes.
@@ -237,128 +476,6 @@ components:
           type: integer
           description: Number of subtasks
           example: 3
-    WebhookReactionData:
-      type: object
-      required:
-      - messageId
-      - topicId
-      - emoji
-      - userId
-      properties:
-        messageId:
-          type: string
-          format: uuid
-          description: The message that was reacted to
-        topicId:
-          type: string
-          format: uuid
-          description: The topic containing the message
-        emoji:
-          type: string
-          description: The emoji that was added/removed
-          example: 👍
-        userId:
-          type: string
-          description: The user who added/removed the reaction
-          example: 550e8400-e29b-41d4-a716-446655440001
-        reactionId:
-          type: string
-          format: uuid
-          description: Reaction ID (present when available)
-        createdAt:
-          type: integer
-          format: int64
-          description: Unix timestamp in milliseconds when the reaction event was created
-          example: 1699564800000
-        reaction:
-          $ref: '#/components/schemas/WebhookReactionObject'
-    WebhookMessageDeletedData:
-      type: object
-      required:
-      - messageId
-      - topicId
-      properties:
-        messageId:
-          type: string
-          format: uuid
-          description: The deleted message ID
-        topicId:
-          type: string
-          format: uuid
-          description: The topic where the message was deleted
-        deletedAt:
-          type: integer
-          format: int64
-          description: Unix timestamp in milliseconds when deletion occurred
-          example: 1699564800000
-        deletedBy:
-          type: string
-          description: The user ID who deleted the message
-        message:
-          type: object
-          description: Minimal message snapshot
-          properties:
-            id:
-              type: string
-              format: uuid
-            topicId:
-              type: string
-              format: uuid
-            senderId:
-              type: string
-    WebhookContact:
-      type: object
-      description: Shared contact information
-      properties:
-        name:
-          type: string
-          description: Contact name
-          example: John Doe
-        phoneNumbers:
-          type: array
-          items:
-            type: string
-          description: Phone numbers
-          example:
-          - '+1234567890'
-        emails:
-          type: array
-          items:
-            type: string
-          description: Email addresses
-          example:
-          - john@example.com
-        role:
-          type: string
-          description: Job title or role
-          example: Engineer
-        location:
-          type: string
-          description: Location or office
-          example: San Francisco
-        linkedIn:
-          type: string
-          description: LinkedIn profile URL
-          example: https://linkedin.com/in/johndoe
-        profileId:
-          type: string
-          description: Zenzap profile ID if the contact is a Zenzap user
-          example: 550e8400-e29b-41d4-a716-446655440001
-    UpdatesResponse:
-      type: object
-      required:
-      - updates
-      - nextOffset
-      properties:
-        updates:
-          type: array
-          items:
-            $ref: '#/components/schemas/PollingUpdate'
-          description: Ordered list of updates after the provided offset
-        nextOffset:
-          type: string
-          description: Opaque offset to pass as `offset` in the next `/v2/updates` call
-          example: AAAAAAABAAAAAAAAAAABAA==
     WebhookAttachment:
       type: object
       description: 'File attachment with download URL. URLs are signed and expire after 60 minutes.
@@ -401,80 +518,6 @@ components:
         transcription:
           status: Done
           text: Hey team, just a quick update on the project...
-    PollingUpdate:
-      type: object
-      required:
-      - updateId
-      - eventType
-      - createdAt
-      - data
-      properties:
-        updateId:
-          type: string
-          description: Opaque update identifier. Use as offset in subsequent polling calls.
-          example: AAAAAAABAAAAAAAAAAABAA==
-        eventType:
-          type: string
-          enum:
-          - message.created
-          - message.updated
-          - message.deleted
-          - reaction.added
-          - reaction.removed
-          - member.added
-          - member.removed
-          - topic.updated
-          description: The update event type
-          example: message.created
-        createdAt:
-          type: integer
-          format: int64
-          description: Unix timestamp in milliseconds when the update was created
-          example: 1699564800000
-        data:
-          description: Event payload. Structure matches the webhook `data` payload for the same event type.
-          oneOf:
-          - $ref: '#/components/schemas/WebhookMessageCreatedData'
-          - $ref: '#/components/schemas/WebhookMessageUpdatedData'
-          - $ref: '#/components/schemas/WebhookMessageDeletedData'
-          - $ref: '#/components/schemas/WebhookReactionData'
-          - $ref: '#/components/schemas/WebhookMemberData'
-          - $ref: '#/components/schemas/WebhookTopicUpdatedData'
-    WebhookTranscription:
-      type: object
-      description: 'Transcription data for audio attachments (voice messages).
-
-
-        **Transcription flow:**
-
-        1. `message.created` arrives with `transcription.status: "Pending"`
-
-        2. `message.updated` arrives when transcription completes with `status: "Done"` and `text` populated
-
-        '
-      properties:
-        status:
-          type: string
-          enum:
-          - Pending
-          - Started
-          - Done
-          - Failed
-          description: 'Transcription status:
-
-            - `Pending`: Queued for transcription
-
-            - `Started`: Transcription in progress
-
-            - `Done`: Transcription complete, `text` field populated
-
-            - `Failed`: Transcription failed
-
-            '
-        text:
-          type: string
-          description: The transcribed text (only present when status is "Done")
-          example: Hey team, just a quick update on the project...
     WebhookMessage:
       type: object
       description: 'Message object as delivered in webhook events. Includes additional fields
@@ -581,49 +624,6 @@ components:
           $ref: '#/components/schemas/WebhookTask'
         contact:
           $ref: '#/components/schemas/WebhookContact'
-    WebhookMessageCreatedData:
-      type: object
-      required:
-      - message
-      properties:
-        message:
-          $ref: '#/components/schemas/WebhookMessage'
-        truncated:
-          type: boolean
-          description: Whether the payload content was truncated
-          example: false
-    MessageMention:
-      type: object
-      properties:
-        id:
-          type: string
-          description: The mentioned profile ID
-          example: 550e8400-e29b-41d4-a716-446655440001
-        name:
-          type: string
-          description: Display name used for the mention text
-          example: Alice Johnson
-    WebhookReactionObject:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-          description: Reaction ID
-        messageId:
-          type: string
-          format: uuid
-          description: The reacted message ID
-        topicId:
-          type: string
-          format: uuid
-          description: Topic ID containing the message
-        userId:
-          type: string
-          description: The reacting user ID
-        emoji:
-          type: string
-          description: The reaction emoji
     WebhookMemberData:
       type: object
       required:
@@ -662,27 +662,6 @@ components:
           description: Unix timestamp in milliseconds when the event payload was created
           example: 1699564800000
   responses:
-    BadRequest:
-      description: Bad request - invalid input
-      content:
-        text/plain:
-          schema:
-            type: string
-          example: text is required
-    Conflict:
-      description: Conflict - request cannot be completed in current state
-      content:
-        text/plain:
-          schema:
-            type: string
-          example: delivery mode is not polling
-    Unauthorized:
-      description: Unauthorized - invalid or missing API token
-      content:
-        text/plain:
-          schema:
-            type: string
-          example: unauthorized
     InternalServerError:
       description: Internal server error
       content:
@@ -690,6 +669,27 @@ components:
           schema:
             type: string
           example: internal server error
+    Unauthorized:
+      description: Unauthorized - invalid or missing API token
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: unauthorized
+    Conflict:
+      description: Conflict - request cannot be completed in current state
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: delivery mode is not polling
+    BadRequest:
+      description: Bad request - invalid input
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: text is required
   parameters:
     XTimestamp:
       name: X-Timestamp

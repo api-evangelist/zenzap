@@ -134,6 +134,38 @@ paths:
           description: Rate limit exceeded (1 request per minute per IP)
 components:
   schemas:
+    AgenticOrganizationCreateRequest:
+      type: object
+      required:
+      - companyName
+      - humanEmail
+      - companySize
+      - industry
+      - botName
+      properties:
+        companyName:
+          type: string
+          maxLength: 100
+          description: Display name of the organization.
+          example: Acme Corp
+        humanEmail:
+          type: string
+          format: email
+          description: The human user who will receive an invite and become the org's first member.
+          example: founder@acme.com
+        companySize:
+          type: integer
+          minimum: 1
+          description: Number of employees. Mapped to a size range.
+          example: 50
+        industry:
+          type: string
+          description: Free-text industry description (e.g. "Software", "Healthcare").
+          example: Software
+        botName:
+          type: string
+          description: Display name for the agent bot installed in the organization.
+          example: Acme Assistant
     AgenticOrganizationCreateResponse:
       type: object
       properties:
@@ -168,38 +200,6 @@ components:
               value:
                 type: string
                 example: utxDAedgfFXglaLX
-    AgenticOrganizationCreateRequest:
-      type: object
-      required:
-      - companyName
-      - humanEmail
-      - companySize
-      - industry
-      - botName
-      properties:
-        companyName:
-          type: string
-          maxLength: 100
-          description: Display name of the organization.
-          example: Acme Corp
-        humanEmail:
-          type: string
-          format: email
-          description: The human user who will receive an invite and become the org's first member.
-          example: founder@acme.com
-        companySize:
-          type: integer
-          minimum: 1
-          description: Number of employees. Mapped to a size range.
-          example: 50
-        industry:
-          type: string
-          description: Free-text industry description (e.g. "Software", "Healthcare").
-          example: Software
-        botName:
-          type: string
-          description: Display name for the agent bot installed in the organization.
-          example: Acme Assistant
   securitySchemes:
     bearerAuth:
       type: http

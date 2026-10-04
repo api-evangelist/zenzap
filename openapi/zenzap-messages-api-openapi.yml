@@ -382,107 +382,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 components:
-  responses:
-    BadRequest:
-      description: Bad request - invalid input
-      content:
-        text/plain:
-          schema:
-            type: string
-          example: text is required
-    Forbidden:
-      description: Forbidden - you do not have permission to perform this action
-      content:
-        text/plain:
-          schema:
-            type: string
-          example: forbidden
-    Unauthorized:
-      description: Unauthorized - invalid or missing API token
-      content:
-        text/plain:
-          schema:
-            type: string
-          example: unauthorized
-    NotFound:
-      description: Resource not found
-      content:
-        text/plain:
-          schema:
-            type: string
-          example: Topic not found
-    InternalServerError:
-      description: Internal server error
-      content:
-        text/plain:
-          schema:
-            type: string
-          example: internal server error
   schemas:
-    MessageCreateResponse:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-          description: The created message ID
-        topicId:
-          type: string
-          format: uuid
-          description: The topic ID where the message was sent
-        createdAt:
-          type: integer
-          format: int64
-          description: Unix timestamp in milliseconds
-    MessageReactionCreateResponse:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-          description: Reaction ID
-          example: 990e8400-e29b-41d4-a716-446655440005
-        messageId:
-          type: string
-          format: uuid
-          description: Message ID the reaction belongs to
-          example: 660e8400-e29b-41d4-a716-446655440001
-        reaction:
-          type: string
-          description: The reaction emoji
-          example: 👍
-        createdAt:
-          type: integer
-          format: int64
-          description: Unix timestamp in milliseconds
-          example: 1699564800000
-    MessageCreateRequest:
-      type: object
-      required:
-      - topicId
-      - text
-      properties:
-        topicId:
-          type: string
-          format: uuid
-          description: The ID of the topic to send the message to
-          example: 550e8400-e29b-41d4-a716-446655440000
-        text:
-          type: string
-          maxLength: 10000
-          description: 'The message text content.
-
-            To mention a member, use `<@profileId>` inside the text.
-
-            Example: `Hello <@550e8400-e29b-41d4-a716-446655440001>`
-
-            '
-          example: Hello from my integration!
-        externalId:
-          type: string
-          maxLength: 61
-          description: Optional external identifier for tracking purposes
-          example: build-12345
     MessageFileUploadRequest:
       type: object
       required:
@@ -537,6 +437,70 @@ components:
           description: Updated message text (max 10000 characters)
           maxLength: 10000
           example: Updated message content
+    MessageCreateRequest:
+      type: object
+      required:
+      - topicId
+      - text
+      properties:
+        topicId:
+          type: string
+          format: uuid
+          description: The ID of the topic to send the message to
+          example: 550e8400-e29b-41d4-a716-446655440000
+        text:
+          type: string
+          maxLength: 10000
+          description: 'The message text content.
+
+            To mention a member, use `<@profileId>` inside the text.
+
+            Example: `Hello <@550e8400-e29b-41d4-a716-446655440001>`
+
+            '
+          example: Hello from my integration!
+        externalId:
+          type: string
+          maxLength: 61
+          description: Optional external identifier for tracking purposes
+          example: build-12345
+    MessageCreateResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The created message ID
+        topicId:
+          type: string
+          format: uuid
+          description: The topic ID where the message was sent
+        createdAt:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds
+    MessageReactionCreateResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Reaction ID
+          example: 990e8400-e29b-41d4-a716-446655440005
+        messageId:
+          type: string
+          format: uuid
+          description: Message ID the reaction belongs to
+          example: 660e8400-e29b-41d4-a716-446655440001
+        reaction:
+          type: string
+          description: The reaction emoji
+          example: 👍
+        createdAt:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds
+          example: 1699564800000
     MessageReactionCreateRequest:
       type: object
       required:
@@ -547,6 +511,42 @@ components:
           description: Emoji reaction to add
           minLength: 1
           example: 👍
+  responses:
+    Unauthorized:
+      description: Unauthorized - invalid or missing API token
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: unauthorized
+    NotFound:
+      description: Resource not found
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: Topic not found
+    BadRequest:
+      description: Bad request - invalid input
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: text is required
+    Forbidden:
+      description: Forbidden - you do not have permission to perform this action
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: forbidden
+    InternalServerError:
+      description: Internal server error
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: internal server error
   parameters:
     XTimestamp:
       name: X-Timestamp

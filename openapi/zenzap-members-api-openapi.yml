@@ -127,7 +127,36 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 components:
+  responses:
+    Unauthorized:
+      description: Unauthorized - invalid or missing API token
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: unauthorized
+    InternalServerError:
+      description: Internal server error
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: internal server error
   schemas:
+    MembersListResponse:
+      type: object
+      properties:
+        members:
+          type: array
+          items:
+            $ref: '#/components/schemas/MemberResponse'
+          description: Array of member objects
+        nextCursor:
+          type: string
+          description: Cursor for the next page. Omitted when there are no more results.
+        hasMore:
+          type: boolean
+          description: Whether there are more members available.
     MemberResponse:
       type: object
       properties:
@@ -171,35 +200,6 @@ components:
           - Deleted
           - Archived
           example: Active
-    MembersListResponse:
-      type: object
-      properties:
-        members:
-          type: array
-          items:
-            $ref: '#/components/schemas/MemberResponse'
-          description: Array of member objects
-        nextCursor:
-          type: string
-          description: Cursor for the next page. Omitted when there are no more results.
-        hasMore:
-          type: boolean
-          description: Whether there are more members available.
-  responses:
-    Unauthorized:
-      description: Unauthorized - invalid or missing API token
-      content:
-        text/plain:
-          schema:
-            type: string
-          example: unauthorized
-    InternalServerError:
-      description: Internal server error
-      content:
-        text/plain:
-          schema:
-            type: string
-          example: internal server error
   parameters:
     XTimestamp:
       name: X-Timestamp

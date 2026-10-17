@@ -307,72 +307,22 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 components:
+  responses:
+    Unauthorized:
+      description: Unauthorized - invalid or missing API token
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: unauthorized
+    InternalServerError:
+      description: Internal server error
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: internal server error
   schemas:
-    PollVoteCreateRequest:
-      type: object
-      required:
-      - optionId
-      properties:
-        optionId:
-          type: string
-          maxLength: 6
-          description: The ID of the option to vote for. Use the `id` values from the `options` array in the create poll response.
-          example: a1b2c3
-    PollCreateResponse:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-          description: The poll ID. Use this as the `pollId` path parameter when voting.
-          example: 770e8400-e29b-41d4-a716-446655440099
-        topicId:
-          type: string
-          format: uuid
-          description: ID of the topic the poll was posted in.
-          example: 550e8400-e29b-41d4-a716-446655440000
-        question:
-          type: string
-          description: The poll question.
-          example: Which release should we prioritize?
-        options:
-          type: array
-          description: Poll options with their server-generated IDs.
-          items:
-            $ref: '#/components/schemas/PollOption'
-        selectionType:
-          type: string
-          enum:
-          - single
-          - multiple
-          example: single
-        status:
-          type: string
-          enum:
-          - active
-          - closed
-          description: Current poll status.
-          example: active
-        anonymous:
-          type: boolean
-          description: Whether the poll is anonymous.
-          example: false
-        createdAt:
-          type: integer
-          format: int64
-          description: Creation timestamp in milliseconds.
-          example: 1699564800000
-    PollOption:
-      type: object
-      properties:
-        id:
-          type: string
-          description: Server-generated 6-character option ID. Use this as `optionId` when voting.
-          example: a1b2c3
-        text:
-          type: string
-          description: Display text for this option.
-          example: Bug fixes
     PollCreateRequest:
       type: object
       required:
@@ -422,6 +372,17 @@ components:
 
             '
           example: false
+    PollOption:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Server-generated 6-character option ID. Use this as `optionId` when voting.
+          example: a1b2c3
+        text:
+          type: string
+          description: Display text for this option.
+          example: Bug fixes
     PollVoteCreateResponse:
       type: object
       properties:
@@ -443,21 +404,60 @@ components:
           format: int64
           description: Vote creation timestamp in milliseconds.
           example: 1699564800000
-  responses:
-    Unauthorized:
-      description: Unauthorized - invalid or missing API token
-      content:
-        text/plain:
-          schema:
-            type: string
-          example: unauthorized
-    InternalServerError:
-      description: Internal server error
-      content:
-        text/plain:
-          schema:
-            type: string
-          example: internal server error
+    PollCreateResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The poll ID. Use this as the `pollId` path parameter when voting.
+          example: 770e8400-e29b-41d4-a716-446655440099
+        topicId:
+          type: string
+          format: uuid
+          description: ID of the topic the poll was posted in.
+          example: 550e8400-e29b-41d4-a716-446655440000
+        question:
+          type: string
+          description: The poll question.
+          example: Which release should we prioritize?
+        options:
+          type: array
+          description: Poll options with their server-generated IDs.
+          items:
+            $ref: '#/components/schemas/PollOption'
+        selectionType:
+          type: string
+          enum:
+          - single
+          - multiple
+          example: single
+        status:
+          type: string
+          enum:
+          - active
+          - closed
+          description: Current poll status.
+          example: active
+        anonymous:
+          type: boolean
+          description: Whether the poll is anonymous.
+          example: false
+        createdAt:
+          type: integer
+          format: int64
+          description: Creation timestamp in milliseconds.
+          example: 1699564800000
+    PollVoteCreateRequest:
+      type: object
+      required:
+      - optionId
+      properties:
+        optionId:
+          type: string
+          maxLength: 6
+          description: The ID of the option to vote for. Use the `id` values from the `options` array in the create poll response.
+          example: a1b2c3
   parameters:
     XTimestamp:
       name: X-Timestamp

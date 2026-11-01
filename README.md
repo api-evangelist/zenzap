@@ -64,6 +64,147 @@
 > Full detail: **[Where this data comes from](https://apievangelist.com/about/where-our-data-comes-from)**
 <!-- API-EVANGELIST-PROVENANCE:END -->
 
-ZenZap is a company surfaced as a portfolio company of bessemer-venture-partners and added to the API Evangelist network as a stub for enrichment. Sector: ai-ml. This profile is a lead awaiting the enrichment pipeline.
+Zenzap is an AI-native work communication platform — "Work Chat Built for the AI Era" — used by teams in healthcare, hospitality, construction, food service, retail, franchise, manufacturing, and non-profit operations. It organizes work into topics (group chats / channels / conversations) carrying messages, tasks, polls, reactions, and file attachments, with HIPAA and SOC 2 compliance, SAML SSO, and SCIM provisioning for enterprises. The Zenzap External Integration API (v2) lets external applications and AI agents act as bots: create topics, send and manage messages, run tasks and polls, manage members, and receive events by webhook or long polling. Backed by Bessemer Venture Partners.
 
-Backed by: bessemer-venture-partners — https://www.zenzap.co/
+**Areas:** Company · Artificial Intelligence · Messaging · Team Communication · Collaboration · Chat · Bots · Webhook · Productivity · Task
+
+## ZenZap on APIs.io
+
+Everything profiled for ZenZap is published on APIs.io rather than in this repository. Start at the provider page — **[apis.io/providers/zenzap/](https://apis.io/providers/zenzap/)** — or go straight to one of the APIs or properties below.
+
+### APIs (8)
+
+- [ZenZap Agentic API](https://apis.io/apis/zenzap/zenzap-agentic-api/) — Endpoints for AI agents to programmatically set up Zenzap organizations. Use `POST /v2/agentic/organization/create` to create an organization, install a…
+- [ZenZap Long Polling API](https://apis.io/apis/zenzap/zenzap-long-polling-api/) — Long polling allows your integration to fetch outbound events instead of receiving webhooks. Use `GET /v2/updates` with: - `offset`: value returned as…
+- [ZenZap Members API](https://apis.io/apis/zenzap/zenzap-members-api/) — Operations for retrieving organization members
+- [ZenZap Messages API](https://apis.io/apis/zenzap/zenzap-messages-api/) — Operations for sending messages
+- [ZenZap Polls API](https://apis.io/apis/zenzap/zenzap-polls-api/) — Operations for creating polls, recording votes, and retracting votes. Polls are posted as messages in a topic. When you create a poll, each option is…
+- [ZenZap Tasks API](https://apis.io/apis/zenzap/zenzap-tasks-api/) — Operations for managing tasks
+- [ZenZap Topics (group chats/channels/conversations) API](https://apis.io/apis/zenzap/zenzap-topics-group-chats-channels-conversations-api/) — Operations for managing topics (group chats/channels/conversations)
+- [ZenZap O Auth API](https://apis.io/apis/zenzap/zenzap-oauth-api/) — OAuth 2.0 `client_credentials` grant. Used by API-key bots that were created with `credentialType: oauth` to mint short-lived bearer access tokens. **In a…
+
+### Published properties
+
+Each property below is a page on APIs.io carrying the machine-readable artifact and what it says.
+
+#### AsyncAPI (1)
+
+Event-driven and webhook contracts.
+
+- [Zenzap Webhooks](https://apis.io/asyncapis/zenzap/zenzap-webhooks/)
+
+#### MCP servers (1)
+
+Model Context Protocol servers that expose the API to agents.
+
+- [zenzap](https://apis.io/servers/zenzap/zenzap/)
+
+#### Agentic access (1)
+
+Which operations an agent can call, which act, and which need a human in the loop.
+
+- [Zenzap Agentic Access](https://apis.io/agentic-access/zenzap/zenzap-agentic-access/)
+
+#### Collections (8)
+
+Postman and Open Collection request collections.
+
+- [Zenzap External Integration Agentic API](https://apis.io/collections/zenzap/open-zenzap-agentic-api/)
+- [Zenzap External Integration Agentic Long Polling API](https://apis.io/collections/zenzap/open-zenzap-long-polling-api/)
+- [Zenzap External Integration Agentic Members API](https://apis.io/collections/zenzap/open-zenzap-members-api/)
+- [Zenzap External Integration Agentic Messages API](https://apis.io/collections/zenzap/open-zenzap-messages-api/)
+- [Zenzap External Integration Agentic OAuth API](https://apis.io/collections/zenzap/open-zenzap-oauth-api/)
+- [Zenzap External Integration Agentic Polls API](https://apis.io/collections/zenzap/open-zenzap-polls-api/)
+- [Zenzap External Integration Agentic Tasks API](https://apis.io/collections/zenzap/open-zenzap-tasks-api/)
+- [Zenzap External Integration Agentic Topics (group chats/channels/conversations) API](https://apis.io/collections/zenzap/open-zenzap-topics-group-chats-channels-conversations-api/)
+
+#### Overlays (1)
+
+OpenAPI overlays, including conversational phrasing for each operation.
+
+- [Zenzap Openapi Overlay](https://apis.io/overlays/zenzap/zenzap-openapi-overlay/)
+
+#### Security (3)
+
+Authentication, trust centre, and vulnerability disclosure.
+
+- [Zenzap Authentication](https://apis.io/security/zenzap/zenzap-authentication/)
+- [Zenzap Domain Security](https://apis.io/security/zenzap/zenzap-domain-security/)
+- [Zenzap Trust Center](https://apis.io/security/zenzap/zenzap-trust-center/)
+
+#### OAuth scopes (1)
+
+The permissions the API asks for.
+
+- [Zenzap Scopes](https://apis.io/scopes/zenzap/zenzap-scopes/)
+
+## Where to find this API
+
+Links to the company's own pages. This repository publishes no copy of their specifications — the canonical document is theirs and lives at the URLs below.
+
+- [Website](https://www.zenzap.co/)
+- [Documentation](https://docs.zenzap.co/)
+- [Getting started](https://docs.zenzap.co/api-reference/getting-started)
+- [API reference](https://docs.zenzap.co/api-reference/getting-started)
+- [Pricing](https://www.zenzap.co/pricing)
+- [Sign up](https://onelink-invites.zenzap.co/7Aqe/7f0o4ql4)
+- [Support](https://knowledge.zenzap.co/)
+- [Blog](https://www.zenzap.co/blog-posts)
+- [Compliance](https://www.zenzap.co/trust-center)
+- [Terms of service](https://www.zenzap.co/terms-of-use)
+- [Privacy policy](https://www.zenzap.co/privacy-policy)
+
+## API Evangelist rating
+
+**Kin Score 53.7** — developing · rubric 0.25.0 · scored 2026-10-23
+
+| Facet | Score |
+|---|---|
+| Discoverability | 73.2 |
+| Contract quality | 62.8 |
+| Contract governance | 4.5 |
+| Operational transparency | 7.9 |
+| Developer ergonomics | 58.9 |
+| Access clarity | 60.5 |
+
+**Agent readiness 40.3** — agent-native
+
+| Agent-readiness dimension | Result |
+|---|---|
+| Spec Presence | yes |
+| Agentic Access | derived (partial credit) |
+| Reversibility Documented | — |
+| MCP Server | — |
+| Auth Clarity | bearer (partial credit) |
+| Idempotency | documented (partial credit) |
+| Error Semantics | verified |
+| OpenAPI Examples | verified |
+| Rate Limit Signal | documented (partial credit) |
+| Event Surface Described | yes |
+| Agent Skills | derived (partial credit) |
+| Well Known Catalog | — |
+| Consent Identity | — |
+| Agent Card | — |
+| Dry Run Mode | — |
+| Delegated Identity | — |
+| Protected Resource Metadata | — |
+| Dynamic Client Registration | — |
+| Agentic Commerce | — |
+| Pagination Ratio | na |
+| Operation Distinctiveness | distinct |
+
+**Regulatory alignment 36.4** — Horizontal (data, software, accessibility, platform)
+
+The rubric is published at [github.com/api-evangelist/kin-score](https://github.com/api-evangelist/kin-score). The per-check breakdown behind these numbers — which checks were earned, partial or missed — along with score history and how this provider compares to its peers, is available at [apis.io/providers/zenzap/](https://apis.io/providers/zenzap/).
+
+## How this profile is made
+
+API Evangelist profiles a company's public API surface the way a developer would find it: the website, developer portal and documentation, the specifications it publishes, its public repositories, and its pricing, status and changelog pages. From that it derives the properties above — contracts split per API, workflows, schemas, collections, governance rules, plans and rate limits — and scores them against the published [Kin Score rubric](https://github.com/api-evangelist/kin-score).
+
+The artifacts are published on [APIs.io](https://apis.io), not in this repository. This repository is the public record for ZenZap: the place to say something is wrong, missing or out of date, and to ask for a re-score or a removal.
+
+## Open an issue
+
+- **Something about this listing** — a wrong description, a missing API, a stale artifact or a question about the rating: [open an issue on this repository](https://github.com/api-evangelist/zenzap/issues/new).
+- **A new API, or one that is not in the catalog yet** — [submit it on APIs.io](https://apis.io/add/).
+- **Anything else** — [the APIs.io inbox](https://github.com/api-search/inbox/issues/new) or [info@apievangelist.com](mailto:info@apievangelist.com).
